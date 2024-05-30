@@ -96,6 +96,7 @@ func (c *Config) Configuration() error {
 		ResetPasswordURL:          *rpURL,
 		ResetPasswordHTMLTemplate: os.Getenv("RESET_PASSWORD_HTML_TEMPLATE"),
 	}
+
 	if c.DbHost == "" || c.DbPort == "" || c.DbUser == "" || c.DbPassword == "" || c.DbName == "" || c.DbDriver == "" || c.ApiPort == "" || c.TokenIssue == "" || len(c.TokenSecret) == 0 || c.TokenExpire < 0 || c.SigningMethod == nil || c.Env == "" || c.EmailName == "" || c.EmailAppPswd == "" || c.ResetPasswordHTMLTemplate == "" {
 		return fmt.Errorf("missing environment variables")
 	}
