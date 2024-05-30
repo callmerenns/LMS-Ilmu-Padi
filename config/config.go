@@ -83,7 +83,7 @@ func (c *Config) Configuration() error {
 	}
 
 	c.Env = os.Getenv("ENV")
-	if c.Env != "development" || c.Env != "staging" || c.Env != "production" {
+	if c.Env != "development" && c.Env != "staging" && c.Env != "production" {
 		return fmt.Errorf("invalid env: %v", c.Env)
 	}
 
