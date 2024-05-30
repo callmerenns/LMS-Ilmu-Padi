@@ -30,7 +30,7 @@ func (n *userRepo) UpdatePassword(email, password string) error {
 
 func (n *userRepo) CheckDuplicateEmail(email string) error {
 	var count int64
-	err := n.db.Model(&entity.User{}).Count(&count).Where("email = ?", email).Error
+	err := n.db.Model(&entity.User{}).Where("email = ?", email).Count(&count).Error
 	if err != nil {
 		return err
 	}
