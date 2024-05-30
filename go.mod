@@ -1,6 +1,6 @@
 module github.com/kelompok-2/ilmu-padi
 
-go 1.21.0
+go 1.22.0
 
 require gorm.io/gorm v1.25.10
 
