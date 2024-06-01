@@ -11,6 +11,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// Initialize Struct Db Config
 type DbConfig struct {
 	DbHost     string
 	DbPort     string
@@ -20,6 +21,7 @@ type DbConfig struct {
 	DbDriver   string
 }
 
+// Initialize Struct Token Config
 type TokenConfig struct {
 	TokenIssue    string `json:"TokenIssue"`
 	TokenSecret   []byte `json:"TokenSecret"`
@@ -27,20 +29,24 @@ type TokenConfig struct {
 	SigningMethod *jwt.SigningMethodHMAC
 }
 
+// Initialize Struct Api Config
 type ApiConfig struct {
 	ApiPort string
 }
 
+// Initialize Struct Smtp Config
 type SmtpConfig struct {
 	EmailName    string
 	EmailAppPswd string
 }
 
+// Initialize Struct Client Config
 type ClientConfig struct {
 	ResetPasswordURL          url.URL
 	ResetPasswordHTMLTemplate string
 }
 
+// Initialize Struct Config
 type Config struct {
 	DbConfig
 	TokenConfig
@@ -50,6 +56,7 @@ type Config struct {
 	Env string
 }
 
+// Configuration
 func (c *Config) Configuration() error {
 	if err := godotenv.Load(); err != nil {
 		return fmt.Errorf("missing env file %v", err.Error())
@@ -103,6 +110,7 @@ func (c *Config) Configuration() error {
 	return nil
 }
 
+// Construction to Access Config
 func NewConfig() (*Config, error) {
 	config := &Config{}
 

@@ -4,105 +4,107 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kelompok-2/ilmu-padi/entity"
+	"github.com/kelompok-2/ilmu-padi/entity/dto"
+	"github.com/kelompok-2/ilmu-padi/shared/common"
 	"github.com/kelompok-2/ilmu-padi/usecase"
 )
 
+// Initialize Struct Course Controller
 type CourseController struct {
 	courseUsecase *usecase.CourseUsecase
 }
 
+// Construction to Access Course Controller
 func NewCourseController(courseUsecase *usecase.CourseUsecase) *CourseController {
 	return &CourseController{courseUsecase: courseUsecase}
 }
 
+// Create Course
 func (ctrl *CourseController) CreateCourse(c *gin.Context) {
-	var input struct {
-		Title       string `json:"title"`
-		Description string `json:"description"`
-	}
-	instructorID := c.MustGet("user_id").(string) // Assume instructor is logged in
+	input := entity.Course{}
+	// instructorID := c.MustGet("user_id").(string) // Assume instructor is logged in
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		common.SendErrorResponse(c, http.StatusBadRequest, "Status Bad Request")
 		return
 	}
 
-	course, err := ctrl.courseUsecase.CreateCourse(input.Title, input.Description, instructorID)
+	course, err := ctrl.courseUsecase.CreateCourse(input)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		common.SendErrorResponse(c, http.StatusInternalServerError, "Status Internal Server Error")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"course": course})
+	common.SendSingleResponse(c, course, "Success")
 }
 
+// Get All Courses
 func (ctrl *CourseController) GetAllCourses(c *gin.Context) {
 	courses, err := ctrl.courseUsecase.GetAllCourses()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		common.SendErrorResponse(c, http.StatusInternalServerError, "Status Internal Server Error")
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"courses": courses})
+	common.SendSingleResponse(c, courses, "Success")
 }
 
+// Get Course By ID
 func (ctrl *CourseController) GetCourseByID(c *gin.Context) {
-	var input struct {
-		ID uint `uri:"id" binding:"required"`
-	}
+	input := dto.CourseIDDto{}
 
 	if err := c.ShouldBindUri(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		common.SendErrorResponse(c, http.StatusBadRequest, "Status Bad Request")
 		return
 	}
 
-	course, err := ctrl.courseUsecase.GetCourseByID(input.ID)
+	course, err := ctrl.courseUsecase.GetCourseByID(input)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Course not found"})
+		common.SendErrorResponse(c, http.StatusNotFound, "Status Not Found")
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"course": course})
+	common.SendSingleResponse(c, course, "Success")
 }
 
+// Update Course
 func (ctrl *CourseController) UpdateCourse(c *gin.Context) {
-	var input struct {
-		ID          uint   `uri:"id" binding:"required"`
-		Title       string `json:"title"`
-		Description string `json:"description"`
-	}
+	input := entity.Course{}
+	ID := dto.CourseIDDto{}
 
 	if err := c.ShouldBindUri(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		common.SendErrorResponse(c, http.StatusBadRequest, "Status Bad Request")
 		return
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		common.SendErrorResponse(c, http.StatusBadRequest, "Status Bad Request")
 		return
 	}
 
-	course, err := ctrl.courseUsecase.UpdateCourse(input.ID, input.Title, input.Description)
+	course, err := ctrl.courseUsecase.UpdateCourse(ID, input)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		common.SendErrorResponse(c, http.StatusInternalServerError, "Status Internal Server Error")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"course": course})
+	common.SendSingleResponse(c, course, "Success")
 }
 
+// Delete Course
 func (ctrl *CourseController) DeleteCourse(c *gin.Context) {
 	var input struct {
 		ID uint `uri:"id" binding:"required"`
 	}
 
 	if err := c.ShouldBindUri(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		common.SendErrorResponse(c, http.StatusBadRequest, "Status Bad Request")
 		return
 	}
 
 	if err := ctrl.courseUsecase.DeleteCourse(input.ID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		common.SendErrorResponse(c, http.StatusInternalServerError, "Status Internal Server Error")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Course deleted successfully"})
+	common.SendSuccessResponse(c, http.StatusOK, "Course Delete Success")
 }

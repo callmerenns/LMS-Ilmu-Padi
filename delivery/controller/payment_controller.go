@@ -4,19 +4,23 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kelompok-2/ilmu-padi/shared/common"
 	"github.com/kelompok-2/ilmu-padi/usecase"
 	"github.com/midtrans/midtrans-go"
 	"github.com/midtrans/midtrans-go/snap"
 )
 
+// Initialize Struct Payment Controller
 type PaymentController struct {
 	paymentUsecase *usecase.PaymentUsecase
 }
 
+// Construction to Access Payment Controller
 func NewPaymentController(paymentUsecase *usecase.PaymentUsecase) *PaymentController {
 	return &PaymentController{paymentUsecase: paymentUsecase}
 }
 
+// Create Payment
 func (ctrl *PaymentController) CreatePayment(c *gin.Context) {
 	var input struct {
 		OrderID     string `json:"order_id"`
@@ -25,7 +29,7 @@ func (ctrl *PaymentController) CreatePayment(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		common.SendErrorResponse(c, http.StatusBadRequest, "Status Bad Request")
 		return
 	}
 
@@ -42,9 +46,9 @@ func (ctrl *PaymentController) CreatePayment(c *gin.Context) {
 
 	snapResp, err := ctrl.paymentUsecase.CreateSnapTransaction(snapReq)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		common.SendErrorResponse(c, http.StatusInternalServerError, "Status Internal Server Error")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"snap_token": snapResp.Token})
+	common.SendSingleResponse(c, snapResp.Token, "Success")
 }

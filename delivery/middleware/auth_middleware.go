@@ -1,11 +1,14 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/kelompok-2/ilmu-padi/repository"
 )
 
 var jwtKey = []byte("my_secret_key")
@@ -30,45 +33,111 @@ func GenerateJWT(userID uint) (string, error) {
 
 func JWTAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		cookie, err := c.Cookie("token")
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-			c.Abort()
-			return
+		tokenString := c.GetHeader("Authorization")
+		if tokenString == "" {
+
+			tokenString, _ = c.Cookie("jwt")
+			if tokenString == "" {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
+				c.Abort()
+				return
+			}
+		} else {
+			tokenString = strings.TrimPrefix(tokenString, "Bearer ")
 		}
 
-		claims := &Claims{}
-		tkn, err := jwt.ParseWithClaims(cookie, claims, func(token *jwt.Token) (interface{}, error) {
-			return jwtKey, nil
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			return []byte("YOUR_SECRET_KEY"), nil
 		})
 
-		if err != nil || !tkn.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		if err != nil || !token.Valid {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
 			return
 		}
 
-		c.Set("user_id", claims.UserID)
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok || !token.Valid {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			c.Abort()
+			return
+		}
+
+		userID := uint(claims["user_id"].(float64))
+		c.Set("user_id", userID)
 		c.Next()
 	}
 }
 
-func RoleMiddleware(requiredRole string) gin.HandlerFunc {
+// func RoleMiddleware(roles ...string) gin.HandlerFunc {
+// 	return func(c *gin.Context) {
+// 		userID, exists := c.Get("user_id")
+// 		if !exists {
+// 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found"})
+// 			c.Abort()
+// 			return
+// 		}
+
+// 		userRepo := c.MustGet("userRepo").(*repository.UserRepository)
+// 		user, err := userRepo.FindByID(userID.(uint))
+// 		if err != nil {
+// 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+// 			c.Abort()
+// 			return
+// 		}
+
+// 		// Assuming user has a field Roles which is a slice of strings
+// 		userRoles := map[string]struct{}{}
+// 		for _, role := range user.Roles {
+// 			userRoles[role] = struct{}{}
+// 		}
+
+// 		authorized := false
+// 		for _, role := range roles {
+// 			if _, ok := userRoles[role]; ok {
+// 				authorized = true
+// 				break
+// 			}
+// 		}
+
+// 		if !authorized {
+// 			c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
+// 			c.Abort()
+// 			return
+// 		}
+
+// 		c.Next()
+// 	}
+// }
+
+func RoleMiddleware(allowedRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID := c.MustGet("user_id").(uint)
-		user, err := userRepository.FindByID(userID)
+		userRepo := repository.NewUserRepository(nil) // Pass actual DB connection
+
+		roles, err := userRepo.GetRolesByUserID(userID)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			c.Abort()
 			return
 		}
 
-		if user.Role != requiredRole {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
-			c.Abort()
-			return
+		roleMap := make(map[string]bool)
+		for _, role := range roles {
+			roleMap[role.Name] = true
 		}
 
-		c.Next()
+		for _, allowedRole := range allowedRoles {
+			if roleMap[allowedRole] {
+				c.Next()
+				return
+			}
+		}
+
+		c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
+		c.Abort()
 	}
 }

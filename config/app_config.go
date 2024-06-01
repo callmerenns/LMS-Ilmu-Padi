@@ -12,6 +12,12 @@ const (
 	PutCourse     = "/courses/:id"
 	DelCourse     = "/courses/:id"
 
+	// Route Authentitacion
+	Register       = "/register"
+	Login          = "/login"
+	Logout         = "/logout"
+	ForgotPassword = "/forgot"
+
 	// Route User
 	GetUserList = "/profile"
 

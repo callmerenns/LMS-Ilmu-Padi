@@ -1,32 +1,35 @@
 package email
 
 import (
-	"gopkg.in/gomail.v2"
+	"log"
+
+	"github.com/sendgrid/sendgrid-go"
+	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
-type SMTPEmailSender struct {
-    host     string
-    port     int
-    username string
-    password string
+type SendGridEmailSender struct {
+	apiKey string
+	email  string
 }
 
-func NewSMTPEmailSender(host string, port int, username, password string) *SMTPEmailSender {
-    return &SMTPEmailSender{
-        host:     host,
-        port:     port,
-        username: username,
-        password: password,
-    }
+func NewSendGridEmailSender(apiKey string, email string) *SendGridEmailSender {
+	return &SendGridEmailSender{
+		apiKey: apiKey,
+		email:  email,
+	}
 }
 
-func (s *SMTPEmailSender) Send(to, subject, body string) error {
-    m := gomail.NewMessage()
-    m.SetHeader("From", s.username)
-    m.SetHeader("To", to)
-    m.SetHeader("Subject", subject)
-    m.SetBody("text/html", body)
+func (s *SendGridEmailSender) Send(to string, subject string, body string) error {
+	from := mail.NewEmail("Example User", s.email)
+	toEmail := mail.NewEmail("Recipient", to)
+	message := mail.NewSingleEmail(from, subject, toEmail, body, body)
+	client := sendgrid.NewSendClient(s.apiKey)
+	response, err := client.Send(message)
+	if err != nil {
+		log.Printf("Failed to send email: %v", err)
+		return err
+	}
 
-    d := gomail.NewDialer(s.host, s.port, s.username, s.password)
-    return d.DialAndSend(m)
+	log.Printf("Email sent successfully with status code: %d", response.StatusCode)
+	return nil
 }

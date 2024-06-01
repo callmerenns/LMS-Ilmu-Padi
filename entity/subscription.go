@@ -6,11 +6,11 @@ import (
 	"gorm.io/gorm"
 )
 
+// Initialize Struct Subscription
 type Subscription struct {
 	gorm.Model
-	ID        string    `json:"id"`
-	UserID    string    `json:"user_id"`
-	StartDate time.Time `json:"start_date"`
-	EndDate   time.Time `json:"end_date"`
-	Status    bool      `json:"status"`
+	User_ID    string    `json:"user_id"`
+	Start_Date time.Time `json:"start_date"`
+	End_Date   time.Time `json:"end_date"`
+	Status     bool      `json:"status"`
 }

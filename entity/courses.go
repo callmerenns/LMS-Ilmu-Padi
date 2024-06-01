@@ -2,11 +2,14 @@ package entity
 
 import "gorm.io/gorm"
 
+// Initialize Struct Course
 type Course struct {
 	gorm.Model
-	ID            string          `json:"id"`
-	Title         string          `json:"title"`
-	Description   string          `json:"description"`
-	InstructorID  string          `json:"instructor_id"`
-	CourseContent []CourseContent `json:"course_content"`
+	Title           string  `json:"title"`
+	Description     string  `json:"description"`
+	Category        string  `json:"category"`
+	Video_URL       string  `json:"video_url"`
+	Duration        string  `json:"duration"`
+	Instructor_Name string  `json:"name_instructor"`
+	Rating          float32 `json:"rating"`
 }

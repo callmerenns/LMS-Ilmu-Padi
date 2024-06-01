@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"net/http"
+	"log"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/kelompok-2/ilmu-padi/config"
 	"github.com/kelompok-2/ilmu-padi/delivery/controller"
 	"github.com/kelompok-2/ilmu-padi/delivery/middleware"
@@ -13,72 +14,110 @@ import (
 	"github.com/kelompok-2/ilmu-padi/entity"
 	"github.com/kelompok-2/ilmu-padi/repository"
 	"github.com/kelompok-2/ilmu-padi/usecase"
-	_ "github.com/lib/pq"
 	midtrans "github.com/midtrans/midtrans-go"
 	"github.com/midtrans/midtrans-go/snap"
 )
 
-var db *gorm.DB
-var err error
+func initDB() *gorm.DB {
+	cfg, err := config.NewConfig()
+	if err != nil {
+		log.Fatalf("Failed to load config(initDB): %v", err)
+	}
 
-func initDB() {
-	cfg, _ := config.NewConfig()
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		cfg.DbHost, cfg.DbPort, cfg.DbUser, cfg.DbPassword, cfg.DbName)
 
-	db, err = gorm.Open("postgres", dsn)
+	db, err := gorm.Open("postgres", dsn)
 	if err != nil {
-		panic("failed to connect to database")
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	db.AutoMigrate(&entity.User{}, &entity.Course{}, &entity.Subscription{}, &entity.VerificationToken{}, &entity.CourseContent{})
+	log.Println("Database connection established successfully")
+
+	db.AutoMigrate(&entity.User{}, &entity.Course{}, &entity.Subscription{}, &entity.Payment{})
+
+	log.Println("Database migrations completed successfully")
+
+	return db
 }
 
 func main() {
 	// delivery.NewServer().Run()
-	cfg, _ := config.NewConfig()
+	db := initDB()
+	if db == nil {
+		log.Fatal("Database connection is nil")
+	}
+
+	defer db.Close()
+
 	// Initialize Midtrans Snap client
 	snapClient := snap.Client{}
 	snapClient.New("YOUR_MIDTRANS_SERVER_KEY", midtrans.Sandbox)
 
+	emailSender := email.NewSendGridEmailSender("smtp.gmail.com", "your-email@example.com")
+
+	// Layer Auth
+	authRepository := repository.NewAuthRepository(db)
+	log.Println("AuthRepository initialized successfully")
+	authUsecase := usecase.NewAuthUsecase(authRepository, emailSender)
+	log.Println("AuthUseCase initialized successfully")
+	authController := controller.NewAuthController(authUsecase)
+	log.Println("AuthController initialized successfully")
+
+	// Layer User
 	userRepository := repository.NewUserRepository(db)
-	emailSender := email.NewSMTPEmailSender("smtp.example.com", 587, "your-email@example.com", "your-email-password")
-	userUsecase := usecase.NewUserUsecase(userRepository, emailSender)
+	log.Println("UserRepository initialized successfully")
+	userUsecase := usecase.NewUserUsecase(userRepository)
+	log.Println("UserUseCase initialized successfully")
 	userController := controller.NewUserController(userUsecase)
+	log.Println("UserController initialized successfully")
 
+	// Layer Course
 	courseRepository := repository.NewCourseRepository(db)
+	log.Println("CourseRepository initialized successfully")
 	courseUsecase := usecase.NewCourseUsecase(courseRepository)
+	log.Println("CourseUseCase initialized successfully")
 	courseController := controller.NewCourseController(courseUsecase)
+	log.Println("CourseController initialized successfully")
 
+	// Layer Payment
 	paymentRepository := repository.NewPaymentRepository(db)
+	log.Println("PaymentRepository initialized successfully")
 	paymentUsecase := usecase.NewPaymentUsecase(&snapClient, paymentRepository)
+	log.Println("PaymentUseCase initialized successfully")
 	paymentController := controller.NewPaymentController(paymentUsecase)
+	log.Println("PaymentController initialized successfully")
 
 	r := gin.Default()
 
-	r.POST("/register", userController.Register)
-	r.POST("/login", userController.Login)
-	r.POST("/forgot-password", userController.ForgotPassword)
-	r.POST("/reset-password", userController.ResetPassword)
+	cfg, err := config.NewConfig()
+	if err != nil {
+		log.Fatalf("Failed to load config(main): %v", err)
+	}
+
+	r.POST("/register", authController.Register)
+	r.POST("/login", authController.Login)
+	r.POST("/logout", authController.Logout)
+	r.POST("/forgot-password", authController.ForgotPassword)
+	r.POST("/reset-password", authController.ResetPassword)
 
 	auth := r.Group("/auth")
 	auth.Use(middleware.JWTAuthMiddleware())
 	{
-		auth.GET("/profile", func(c *gin.Context) {
-			userID := c.MustGet("user_id").(uint)
-			user, err := userRepository.FindByID(userID)
-			if err != nil {
-				c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-				return
-			}
-			c.JSON(http.StatusOK, gin.H{"user": user})
-		})
+		// Route Profile
+		auth.GET("/profile", userController.GetProfileByID)
+		auth.GET("/profile/:id", userController.GetProfileByID)
+		// auth.GET("/profile/:email", middleware.RoleMiddleware("admin"), userController.GetProfileByID)
+		// auth.GET("/profile/:subscription-status", middleware.RoleMiddleware("admin"), userController.GetProfileByID)
+		// auth.GET("/profile/:course", middleware.RoleMiddleware("admin"), userController.GetProfileByID)
 
-		auth.POST("/courses", middleware.RoleMiddleware("instructor"), courseController.CreateCourse)
+		// Route Course
+		auth.POST("/courses", courseController.CreateCourse)
 		auth.GET("/courses", courseController.GetAllCourses)
 		auth.GET("/courses/:id", courseController.GetCourseByID)
-		auth.PUT("/courses/:id", middleware.RoleMiddleware("instructor"), courseController.UpdateCourse)
-		auth.DELETE("/courses/:id", middleware.RoleMiddleware("admin"), courseController.DeleteCourse)
+		auth.PUT("/courses/:id", courseController.UpdateCourse)
+		auth.DELETE("/courses/:id", courseController.DeleteCourse)
 
+		// Route Payment
 		auth.POST("/payment", paymentController.CreatePayment)
 	}
 
