@@ -10,9 +10,9 @@ import (
 	"github.com/kelompok-2/ilmu-padi/config"
 	"github.com/kelompok-2/ilmu-padi/delivery/controller"
 	"github.com/kelompok-2/ilmu-padi/delivery/middleware"
-	"github.com/kelompok-2/ilmu-padi/email"
 	"github.com/kelompok-2/ilmu-padi/entity"
 	"github.com/kelompok-2/ilmu-padi/repository"
+	"github.com/kelompok-2/ilmu-padi/shared/service"
 	"github.com/kelompok-2/ilmu-padi/usecase"
 	midtrans "github.com/midtrans/midtrans-go"
 	"github.com/midtrans/midtrans-go/snap"
@@ -53,12 +53,18 @@ func main() {
 	snapClient := snap.Client{}
 	snapClient.New("YOUR_MIDTRANS_SERVER_KEY", midtrans.Sandbox)
 
-	emailSender := email.NewSendGridEmailSender("smtp.gmail.com", "your-email@example.com")
+	cfg, err := config.NewConfig()
+	if err != nil {
+		log.Fatalf("Failed to load config(main): %v", err)
+	}
+
+	mailService := service.NewMailService(cfg.SmtpConfig)
+	log.Println("MailService initialized successfully")
 
 	// Layer Auth
 	authRepository := repository.NewAuthRepository(db)
 	log.Println("AuthRepository initialized successfully")
-	authUsecase := usecase.NewAuthUsecase(authRepository, emailSender)
+	authUsecase := usecase.NewAuthUsecase(authRepository, mailService)
 	log.Println("AuthUseCase initialized successfully")
 	authController := controller.NewAuthController(authUsecase)
 	log.Println("AuthController initialized successfully")
@@ -88,11 +94,6 @@ func main() {
 	log.Println("PaymentController initialized successfully")
 
 	r := gin.Default()
-
-	cfg, err := config.NewConfig()
-	if err != nil {
-		log.Fatalf("Failed to load config(main): %v", err)
-	}
 
 	r.POST("/register", authController.Register)
 	r.POST("/login", authController.Login)

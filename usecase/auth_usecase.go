@@ -7,16 +7,19 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/kelompok-2/ilmu-padi/client"
 	"github.com/kelompok-2/ilmu-padi/config"
 	"github.com/kelompok-2/ilmu-padi/entity"
 	"github.com/kelompok-2/ilmu-padi/entity/dto"
 	"github.com/kelompok-2/ilmu-padi/repository"
+	"github.com/kelompok-2/ilmu-padi/shared/service"
+	"github.com/kelompok-2/ilmu-padi/shared/utils"
 )
 
 // Initialize Struct Auth Usecase
 type AuthUsecase struct {
 	authRepo    *repository.AuthRepository
-	emailSender EmailSender
+	mailService *service.MailService
 }
 
 // Initialize Interface Email Sender Repository
@@ -25,8 +28,8 @@ type EmailSender interface {
 }
 
 // Construction to Access Auth Usecase
-func NewAuthUsecase(authRepository *repository.AuthRepository, emailSender EmailSender) *AuthUsecase {
-	return &AuthUsecase{authRepo: authRepository, emailSender: emailSender}
+func NewAuthUsecase(authRepository *repository.AuthRepository, mailService *service.MailService) *AuthUsecase {
+	return &AuthUsecase{authRepo: authRepository, mailService: mailService}
 }
 
 // Register
@@ -59,10 +62,13 @@ func (u *AuthUsecase) Register(data dto.RegisterDto) (*entity.User, error) {
 		return nil, err
 	}
 
-	verificationURL := "http://yourdomain.com/verify-email?token=" + verificationToken
-	body := "To verify your email, please click the following link: " + verificationURL
+	verificationURL := "http://ilmupadi.com/verify-email?token=" + verificationToken
+	replacements := map[string]string{
+		"{verificationLink}": verificationURL,
+	}
+	html := utils.FormatTemplate(client.VerifyEmailTemplate, replacements)
 
-	if err := u.emailSender.Send(user.Email, "Email Verification", body); err != nil {
+	if err := u.mailService.SendMail("Reset Password", html, []string{user.Email}); err != nil {
 		return nil, err
 	}
 
@@ -127,9 +133,12 @@ func (u *AuthUsecase) ForgotPassword(data dto.ForgotPasswordDto) error {
 	}
 
 	resetURL := "http://ilmupadi.com/reset-password?token=" + token
-	body := "To reset your password, please click the following link: " + resetURL
+	replacements := map[string]string{
+		"{resetLink}": resetURL,
+	}
+	html := utils.FormatTemplate(client.ResetPasswordTemplate, replacements)
 
-	return u.emailSender.Send(user.Email, "Password Reset Request", body)
+	return u.mailService.SendMail("Reset Password", html, []string{user.Email})
 }
 
 // Reset Password

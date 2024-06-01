@@ -42,8 +42,7 @@ type SmtpConfig struct {
 
 // Initialize Struct Client Config
 type ClientConfig struct {
-	ResetPasswordURL          url.URL
-	ResetPasswordHTMLTemplate string
+	ResetPasswordURL url.URL
 }
 
 // Initialize Struct Config
@@ -100,10 +99,10 @@ func (c *Config) Configuration() error {
 	}
 
 	c.ClientConfig = ClientConfig{
-		ResetPasswordURL:          *rpURL,
-		ResetPasswordHTMLTemplate: os.Getenv("RESET_PASSWORD_HTML_TEMPLATE"),
+		ResetPasswordURL: *rpURL,
 	}
-	if c.DbHost == "" || c.DbPort == "" || c.DbUser == "" || c.DbPassword == "" || c.DbName == "" || c.DbDriver == "" || c.ApiPort == "" || c.TokenIssue == "" || len(c.TokenSecret) == 0 || c.TokenExpire < 0 || c.SigningMethod == nil || c.Env == "" || c.EmailName == "" || c.EmailAppPswd == "" || c.ResetPasswordHTMLTemplate == "" {
+
+	if c.DbHost == "" || c.DbPort == "" || c.DbUser == "" || c.DbPassword == "" || c.DbName == "" || c.DbDriver == "" || c.ApiPort == "" || c.TokenIssue == "" || len(c.TokenSecret) == 0 || c.TokenExpire < 0 || c.SigningMethod == nil || c.Env == "" || c.EmailName == "" || c.EmailAppPswd == "" {
 		return fmt.Errorf("missing environment variables")
 	}
 
