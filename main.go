@@ -8,6 +8,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/kelompok-2/ilmu-padi/config"
+	"github.com/kelompok-2/ilmu-padi/config/routes"
 	"github.com/kelompok-2/ilmu-padi/delivery/controller"
 	"github.com/kelompok-2/ilmu-padi/delivery/middleware"
 	"github.com/kelompok-2/ilmu-padi/entity"
@@ -33,7 +34,7 @@ func initDB() *gorm.DB {
 	}
 	log.Println("Database connection established successfully")
 
-	db.AutoMigrate(&entity.User{}, &entity.Course{}, &entity.Subscription{}, &entity.Payment{})
+	db.AutoMigrate(&entity.User{}, &entity.Course{}, &entity.Subscription{}, &entity.Payment{}, &entity.UserCoursesFavourite{})
 
 	log.Println("Database migrations completed successfully")
 
@@ -85,6 +86,14 @@ func main() {
 	courseController := controller.NewCourseController(courseUsecase)
 	log.Println("CourseController initialized successfully")
 
+	// Layer User Course Favourite
+	userCourseFavouriteRepository := repository.NewUserCoursesFavouriteRepository(db)
+	log.Println("UserCourseFavouriteRepository initialized successfully")
+	userCourseFavouriteUsecase := usecase.NewUserCoursesFavouriteUsecase(userCourseFavouriteRepository)
+	log.Println("UserCourseFavouriteUseCase initialized successfully")
+	userCoursesFavouriteController := controller.NewUserCoursesFavouriteController(userCourseFavouriteUsecase)
+	log.Println("UserCourseFavouriteController initialized successfully")
+
 	// Layer Payment
 	paymentRepository := repository.NewPaymentRepository(db)
 	log.Println("PaymentRepository initialized successfully")
@@ -105,7 +114,7 @@ func main() {
 	auth.Use(middleware.JWTAuthMiddleware())
 	{
 		// Route Profile
-		auth.GET("/profile", userController.GetProfileByID)
+		auth.GET("/profile", userController.GetList)
 		auth.GET("/profile/:id", userController.GetProfileByID)
 		// auth.GET("/profile/:email", middleware.RoleMiddleware("admin"), userController.GetProfileByID)
 		// auth.GET("/profile/:subscription-status", middleware.RoleMiddleware("admin"), userController.GetProfileByID)
@@ -117,6 +126,10 @@ func main() {
 		auth.GET("/courses/:id", courseController.GetCourseByID)
 		auth.PUT("/courses/:id", courseController.UpdateCourse)
 		auth.DELETE("/courses/:id", courseController.DeleteCourse)
+
+		// Route User Course Favourite
+		auth.POST(routes.PostUserCourseFavourite, userCoursesFavouriteController.AddOrRemoveCourseFavourite)
+		auth.GET(routes.GetUserCourseFavouriteList, userCoursesFavouriteController.GetUserFavouriteList)
 
 		// Route Payment
 		auth.POST("/payment", paymentController.CreatePayment)

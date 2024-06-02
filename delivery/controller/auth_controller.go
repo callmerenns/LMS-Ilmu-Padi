@@ -102,7 +102,7 @@ func (ctrl *AuthController) ForgotPassword(c *gin.Context) {
 	}
 
 	if err := ctrl.authUsecase.ForgotPassword(input); err != nil {
-		common.SendErrorResponse(c, http.StatusInternalServerError, "Status internal Server Error")
+		common.SendErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 

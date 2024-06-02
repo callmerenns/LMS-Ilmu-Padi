@@ -50,7 +50,7 @@ func NewServer() *Server {
 		panic("failed to connect to database")
 	}
 
-	db.AutoMigrate(&entity.User{}, &entity.Course{}, &entity.Subscription{})
+	db.AutoMigrate(&entity.User{}, &entity.Course{}, &entity.Subscription{}, &entity.UserCoursesFavourite{})
 
 	// jwtService := service.NewJwtService(cfg.TokenConfig)
 	// courseRepo := repository.NewCourseRepository(db)

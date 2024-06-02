@@ -1,4 +1,4 @@
-package config
+package routes
 
 const (
 	// Route Group
@@ -11,6 +11,10 @@ const (
 	GetCourseName = "/courses/category/:category"
 	PutCourse     = "/courses/:id"
 	DelCourse     = "/courses/:id"
+
+	// Route User Course Favourite
+	PostUserCourseFavourite    = "/user/course/favourite"
+	GetUserCourseFavouriteList = "/user/course/favourite/:user_id"
 
 	// Route Authentitacion
 	Register       = "/register"
