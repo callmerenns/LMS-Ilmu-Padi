@@ -21,6 +21,15 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 	return &UserRepository{db: db}
 }
 
+// Find All
+func (r *UserRepository) FindAll() ([]entity.User, error) {
+	var users []entity.User
+	if err := r.db.Find(&users).Error; err != nil {
+		return nil, err
+	}
+	return users, nil
+}
+
 // Find By ID
 func (r *UserRepository) FindByID(id uint) (*entity.User, error) {
 	if r.db == nil {

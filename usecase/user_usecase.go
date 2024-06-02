@@ -15,6 +15,11 @@ func NewUserUsecase(userRepo *repository.UserRepository) *UserUsecase {
 	return &UserUsecase{userRepo: userRepo}
 }
 
+// Find All
+func (u *UserUsecase) FindAll() ([]entity.User, error) {
+	return u.userRepo.FindAll()
+}
+
 // Get Profile By ID
 func (u *UserUsecase) GetProfileByID(userID uint) (*entity.User, error) {
 	return u.userRepo.FindByID(userID)
