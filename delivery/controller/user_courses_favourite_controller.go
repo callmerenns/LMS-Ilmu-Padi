@@ -13,12 +13,12 @@ import (
 )
 
 type UserCoursesFavouriteController struct {
-	userCoursesFavouriteUsecase usecase.IUserCoursesFavouriteUsecase
+	userCoursesFavouriteUsecase usecase.UserCoursesFavouriteUsecase
 	rg                          *gin.RouterGroup
 	authMid                     middleware.AuthMiddleware
 }
 
-func NewUserCoursesFavouriteController(userCoursesFavouriteUsecase usecase.IUserCoursesFavouriteUsecase, rg *gin.RouterGroup, authMid middleware.AuthMiddleware) *UserCoursesFavouriteController {
+func NewUserCoursesFavouriteController(userCoursesFavouriteUsecase usecase.UserCoursesFavouriteUsecase, rg *gin.RouterGroup, authMid middleware.AuthMiddleware) *UserCoursesFavouriteController {
 	return &UserCoursesFavouriteController{
 		userCoursesFavouriteUsecase: userCoursesFavouriteUsecase,
 		rg:                          rg,
@@ -34,7 +34,7 @@ func (u *UserCoursesFavouriteController) AddOrRemoveCourseFavourite(c *gin.Conte
 		return
 	}
 
-	err, msg := u.userCoursesFavouriteUsecase.AddOrRemoveToFavourite(ucf)
+	msg, err := u.userCoursesFavouriteUsecase.AddOrRemoveToFavourite(ucf)
 	if err != nil {
 		common.SendErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return

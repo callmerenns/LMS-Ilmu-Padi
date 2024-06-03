@@ -13,7 +13,7 @@ type userCoursesFavouriteUsecase struct {
 // Initialize Interface User Course Sender Usecase
 type UserCoursesFavouriteUsecase interface {
 	AddOrRemoveToFavourite(ucf entity.UserCoursesFavourite) (string, error)
-	GetFavouriteList(user_id uint) ([]entity.Course, error)
+	FindAllByUserID(user_id uint) ([]entity.Course, error)
 }
 
 // Construction to Access User Courses Usecase
@@ -29,6 +29,6 @@ func (uc *userCoursesFavouriteUsecase) AddOrRemoveToFavourite(ucf entity.UserCou
 }
 
 // Get Favorite List
-func (uc *userCoursesFavouriteUsecase) GetFavouriteList(user_id uint) ([]entity.Course, error) {
+func (uc *userCoursesFavouriteUsecase) FindAllByUserID(user_id uint) ([]entity.Course, error) {
 	return uc.userCoursesFavouriteRepository.FindAllByUserID(user_id)
 }

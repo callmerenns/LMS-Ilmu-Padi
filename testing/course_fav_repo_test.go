@@ -15,7 +15,7 @@ type CourseFavouriteRepoTestSuite struct {
 	suite.Suite
 	mockDb  *sql.DB
 	mockSql sqlmock.Sqlmock
-	repo    repository.IUserCoursesFavouriteRepository
+	repo    repository.UserCoursesFavouriteRepository
 }
 
 var payload = entity.UserCoursesFavourite{
@@ -38,7 +38,7 @@ func (s *CourseFavouriteRepoTestSuite) TestAddOrRemoveCourseFavourite_Added() {
 
 	s.mockSql.ExpectCommit()
 
-	err, result := s.repo.AddOrRemoveToFavourite(payload)
+	result, err := s.repo.AddOrRemoveToFavourite(payload)
 
 	s.NoError(err)
 	s.Equal("Add to Favourite Executed", result)
@@ -60,7 +60,7 @@ func (s *CourseFavouriteRepoTestSuite) TestAddOrRemoveCourseFavourite_Removed() 
 
 	s.mockSql.ExpectCommit()
 
-	err, result := s.repo.AddOrRemoveToFavourite(payload)
+	result, err := s.repo.AddOrRemoveToFavourite(payload)
 
 	s.NoError(err)
 	s.Equal("Removed from Favourite Executed", result)

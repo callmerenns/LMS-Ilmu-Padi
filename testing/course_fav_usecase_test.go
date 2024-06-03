@@ -11,7 +11,7 @@ import (
 type CourseFavouriteUseCaseTestSuite struct {
 	suite.Suite
 	arm *mocking.CourseFavouriteRepoMock
-	auc usecase.IUserCoursesFavouriteUsecase
+	auc usecase.UserCoursesFavouriteUsecase
 }
 
 func (s *CourseFavouriteUseCaseTestSuite) SetupTest() {
@@ -25,20 +25,20 @@ func TestCourseFavouriteUseCaseTestSuite(t *testing.T) {
 
 func (s *CourseFavouriteUseCaseTestSuite) TestAddOrRemoveCourseFavourite_Added() {
 	s.arm.On("AddOrRemoveToFavourite", payload).Return(nil, "Add to Favourite Executed")
-	err, str := s.auc.AddOrRemoveToFavourite(payload)
+	result, err := s.auc.AddOrRemoveToFavourite(payload)
 
 	s.arm.AssertExpectations(s.T())
 
 	s.NoError(err)
-	s.Equal("Add to Favourite Executed", str)
+	s.Equal("Add to Favourite Executed", result)
 }
 
 func (s *CourseFavouriteUseCaseTestSuite) TestAddOrRemoveCourseFavourite_Removed() {
 	s.arm.On("AddOrRemoveToFavourite", payload).Return(nil, "Remove from Favourite Executed")
-	err, str := s.auc.AddOrRemoveToFavourite(payload)
+	result, err := s.auc.AddOrRemoveToFavourite(payload)
 
 	s.arm.AssertExpectations(s.T())
 
 	s.NoError(err)
-	s.Equal("Remove from Favourite Executed", str)
+	s.Equal("Remove from Favourite Executed", result)
 }
