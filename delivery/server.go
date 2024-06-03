@@ -2,62 +2,91 @@ package delivery
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/kelompok-2/ilmu-padi/config"
-	ctrl "github.com/kelompok-2/ilmu-padi/delivery/controller"
-	rp "github.com/kelompok-2/ilmu-padi/repository"
-	uc "github.com/kelompok-2/ilmu-padi/usecase"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	"github.com/kelompok-2/ilmu-padi/config/routes"
+	"github.com/kelompok-2/ilmu-padi/delivery/controller"
+	"github.com/kelompok-2/ilmu-padi/delivery/middleware"
+	"github.com/kelompok-2/ilmu-padi/entity"
+	"github.com/kelompok-2/ilmu-padi/repository"
+	"github.com/kelompok-2/ilmu-padi/shared/service"
+	"github.com/kelompok-2/ilmu-padi/usecase"
+	"github.com/midtrans/midtrans-go/snap"
 )
 
-// mandatory: usecase & service
 type Server struct {
-	engine  *gin.Engine
-	cfg     *config.Config
-	usecase uc.IUserUsecase
+	authUsc        usecase.AuthUsecase
+	userUc         usecase.UserUsecase
+	courseUc       usecase.CourseUsecase
+	userFavoriteUc usecase.UserCoursesFavouriteUsecase
+	paymentUc      usecase.PaymentUsecase
+	jwtService     service.JwtService
+	engine         *gin.Engine
+	host           string
 }
 
 func (s *Server) initRoute() {
-	r := s.engine.Group("/api/v1")
-	// m := middlewares.NewAuthMiddleware(s.jwtService, s.userUsecase)
-
-	ctrl.NewUserCtrl(s.usecase).Routing(r)
-}
-
-func NewServer() *Server {
-	var err error
-	var c *config.Config
-	c, err = config.NewConfig()
-	if err != nil {
-		log.Fatal("Unexpected error:", err)
-	}
-
-	var db *gorm.DB
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", c.DbHost, c.DbUser, c.DbPassword, c.DbName, c.DbPort)
-	db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		log.Fatal("Unexpected error:", err)
-	}
-
-	// Inject Usecase, Service, Repo
-	courseRepo := rp.NewCourseRepo(db)
-	subcribtionRepo := rp.NewSubscribtionRepo(db)
-	userRepo := rp.NewUserRepo(db, courseRepo, subcribtionRepo)
-
-	userUsecase := uc.NewUserUsecase(userRepo)
-
-	// mandatory: usecase & service
-	return &Server{
-		usecase: userUsecase,
-		engine:  gin.Default(),
-		cfg:     c,
-	}
+	rg := s.engine.Group(routes.ApiGroup)
+	authMid := middleware.NewAuthMiddleware(s.jwtService)
+	controller.NewAuthController(s.authUsc, rg).Route()
+	controller.NewUserController(s.userUc, rg, authMid).Route()
+	controller.NewCourseController(s.courseUc, rg, authMid).Route()
+	controller.NewUserCoursesFavouriteController(s.userFavoriteUc, rg, authMid).Route()
+	controller.NewPaymentController(s.paymentUc, rg, authMid).Route()
 }
 
 func (s *Server) Run() {
 	s.initRoute()
-	s.engine.Run(":8080")
+	if err := s.engine.Run(s.host); err != nil {
+		panic(fmt.Errorf("server not running on host %s, becauce error %v", s.host, err.Error()))
+	}
+}
+
+func NewServer() *Server {
+	cfg, _ := config.NewConfig()
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		cfg.DbHost, cfg.DbPort, cfg.DbUser, cfg.DbPassword, cfg.DbName)
+
+	db, err := gorm.Open(cfg.DbDriver, dsn)
+	if err != nil {
+		panic("failed to connect to database")
+	}
+
+	db.AutoMigrate(&entity.User{}, &entity.Course{}, &entity.Subscription{}, &entity.UserCoursesFavourite{}, &entity.Payment{})
+
+	jwtService := service.NewJwtService(cfg.TokenConfig)
+	mailService := service.NewMailService(cfg.SmtpConfig)
+	snapClientService := snap.Client{}
+
+	// Setup Configuration Layer Repo
+	authRepo := repository.NewAuthRepository(db)
+	userRepo := repository.NewUserRepository(db)
+	courseRepo := repository.NewCourseRepository(db)
+	userCourseFavoriteRepo := repository.NewUserCoursesFavouriteRepository(db)
+	// mailRepo := repository.New
+	paymentRepo := repository.NewPaymentRepository(db)
+
+	// Setup Configuration Layer Usecase
+	authUsecase := usecase.NewAuthUsecase(authRepo, jwtService, *mailService)
+	userUsecase := usecase.NewUserUsecase(userRepo)
+	courseUsecase := usecase.NewCourseUsecase(courseRepo)
+	userCourseFavotiteUsecase := usecase.NewUserCoursesFavouriteUsecase(userCourseFavoriteRepo)
+	paymentUsecase := usecase.NewPaymentUsecase(snapClientService, paymentRepo)
+
+	engine := gin.Default()
+	host := fmt.Sprintf(":%s", cfg.ApiPort)
+
+	return &Server{
+		authUsc:        authUsecase,
+		userUc:         userUsecase,
+		courseUc:       courseUsecase,
+		userFavoriteUc: userCourseFavotiteUsecase,
+		paymentUc:      paymentUsecase,
+		jwtService:     jwtService,
+		engine:         engine,
+		host:           host,
+	}
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// Initialize Struct Db Config
 type DbConfig struct {
 	DbHost     string
 	DbPort     string
@@ -20,26 +21,31 @@ type DbConfig struct {
 	DbDriver   string
 }
 
+// Initialize Struct Token Config
 type TokenConfig struct {
-	TokenIssue    string
-	TokenSecret   []byte
+	TokenIssue    string `json:"TokenIssue"`
+	TokenSecret   []byte `json:"TokenSecret"`
 	TokenExpire   time.Duration
 	SigningMethod *jwt.SigningMethodHMAC
 }
 
+// Initialize Struct Api Config
 type ApiConfig struct {
 	ApiPort string
 }
 
+// Initialize Struct Smtp Config
 type SmtpConfig struct {
 	EmailName    string
 	EmailAppPswd string
 }
 
+// Initialize Struct Client Config
 type ClientConfig struct {
 	ResetPasswordURL url.URL
 }
 
+// Initialize Struct Config
 type Config struct {
 	DbConfig
 	TokenConfig
@@ -49,6 +55,7 @@ type Config struct {
 	Env string
 }
 
+// Configuration
 func (c *Config) Configuration() error {
 	if err := godotenv.Load(); err != nil {
 		return fmt.Errorf("missing env file %v", err.Error())
@@ -68,10 +75,11 @@ func (c *Config) Configuration() error {
 	}
 
 	tokenExpire, _ := strconv.Atoi(os.Getenv("TOKEN_EXPIRE"))
+
 	c.TokenConfig = TokenConfig{
 		TokenIssue:    os.Getenv("TOKEN_ISSUE"),
 		TokenSecret:   []byte(os.Getenv("TOKEN_SECRET")),
-		TokenExpire:   time.Second * time.Duration(tokenExpire),
+		TokenExpire:   time.Hour * time.Duration(tokenExpire),
 		SigningMethod: jwt.SigningMethodHS256,
 	}
 
@@ -101,6 +109,7 @@ func (c *Config) Configuration() error {
 	return nil
 }
 
+// Construction to Access Config
 func NewConfig() (*Config, error) {
 	config := &Config{}
 

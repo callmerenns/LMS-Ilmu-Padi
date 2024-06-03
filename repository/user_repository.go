@@ -1,92 +1,100 @@
 package repository
 
 import (
-	"errors"
+	"log"
+	"math"
 
+	"github.com/jinzhu/gorm"
 	"github.com/kelompok-2/ilmu-padi/entity"
-	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
+	"github.com/kelompok-2/ilmu-padi/shared/model"
 )
 
-type userRepo struct {
-	courseRepo       ICourseRepo
-	subscribtionRepo ISubscribtionRepo
-	db               *gorm.DB
+// Initialize Struct User Repository
+type userRepository struct {
+	db *gorm.DB
 }
 
-func (n *userRepo) UpdatePassword(email, password string) error {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-
-	err = n.db.Model(&entity.User{}).Update("password", string(hashedPassword)).Where("email = ?", email).Error
-	if err != nil {
-		return err
-	}
-
-	return nil
+// Initialize Interface User Sender Repository
+type UserRepository interface {
+	FindAll(page, size int) ([]entity.User, model.Paging, error)
+	FindByID(id uint) (entity.User, error)
+	GetRolesByUserID(userID uint) ([]entity.User, error)
+	FindByEmailUser(email string) (entity.User, error)
 }
 
-func (n *userRepo) CheckDuplicateEmail(email string) error {
-	var count int64
-	err := n.db.Model(&entity.User{}).Where("email = ?", email).Count(&count).Error
-	if err != nil {
-		return err
-	}
-	if count > 0 {
-		return errors.New("email already exists in database")
+// Construction to Access User Repository
+func NewUserRepository(db *gorm.DB) UserRepository {
+	if db == nil {
+		log.Fatal("Database connection is nil UserRepository")
 	}
 
-	return nil
+	return &userRepository{db: db}
 }
 
-func (n *userRepo) FindByEmail(email string) (entity.User, error) {
+// Find All
+func (u *userRepository) FindAll(page, size int) ([]entity.User, model.Paging, error) {
+	if u.db == nil {
+		log.Fatal("Database connection is nil in FindAll")
+	}
+
+	var users []entity.User
+	offset := (page - 1) * size
+
+	// Calculate the row total first
+	var totalRows int
+	if err := u.db.Model(&entity.User{}).Count(&totalRows).Error; err != nil {
+		return nil, model.Paging{}, err
+	}
+
+	// Retrieve data with limits and offsets for pagination
+	if err := u.db.Limit(size).Offset(offset).Find(&users).Error; err != nil {
+		return nil, model.Paging{}, err
+	}
+
+	// Set up paging information
+	paging := model.Paging{
+		Page:        page,
+		RowsPerPage: size,
+		TotalRows:   totalRows,
+		TotalPages:  int(math.Ceil(float64(totalRows) / float64(size))),
+	}
+	return users, paging, nil
+}
+
+// Find By ID
+func (u *userRepository) FindByID(id uint) (entity.User, error) {
+	if u.db == nil {
+		log.Fatal("Database connection is nil in FindByID")
+	}
+
 	var user entity.User
-	err := n.db.Where("email = ?", email).First(&user).Error
-	if err != nil {
-		return entity.User{}, err
-	}
-
-	user.Courses, err = n.courseRepo.FindUserCoursesByUserID(user.ID)
-	if err != nil {
-		return entity.User{}, err
-	}
-
-	user.Subscriptions, err = n.subscribtionRepo.FindUserSubscribtionsByUserID(user.ID)
-	if err != nil {
+	if err := u.db.First(&user, id).Error; err != nil {
 		return entity.User{}, err
 	}
 	return user, nil
 }
 
-func (n *userRepo) Insert(payload entity.User) (string, error) {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(payload.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-	payload.Password = string(hashedPassword)
-
-	err = n.db.Create(&payload).Error
-
-	if err != nil {
-		return "", err
+// Get Roles By User ID
+func (u *userRepository) GetRolesByUserID(userID uint) ([]entity.User, error) {
+	if u.db == nil {
+		log.Fatal("Database connection is nil in GetRolesByUserID")
 	}
 
-	return payload.ID, nil
+	var roles []entity.User
+	if err := u.db.Joins("JOIN user_roles on roles.id = user_roles.role_id").Where("user_roles.user_id = ?", userID).Find(&roles).Error; err != nil {
+		return nil, err
+	}
+	return roles, nil
 }
 
-type IUserRepo interface {
-	UpdatePassword(email, password string) error
-	FindByEmail(email string) (entity.User, error)
-	CheckDuplicateEmail(email string) error
-	Insert(payload entity.User) (string, error)
-}
-
-func NewUserRepo(db *gorm.DB, courseRepo ICourseRepo, subscribtionRepo ISubscribtionRepo) IUserRepo {
-	return &userRepo{
-		db:               db,
-		subscribtionRepo: subscribtionRepo,
-		courseRepo:       courseRepo,
+// Find By Email User
+func (u *userRepository) FindByEmailUser(email string) (entity.User, error) {
+	if u.db == nil {
+		log.Fatal("Database connection is nil in FindByEmailUser")
 	}
+	var user entity.User
+	if err := u.db.Where("email = ?", email).First(&user).Error; err != nil {
+		return entity.User{}, err
+	}
+	return user, nil
 }
