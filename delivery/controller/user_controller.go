@@ -5,55 +5,64 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kelompok-2/ilmu-padi/config/routes"
+	"github.com/kelompok-2/ilmu-padi/delivery/middleware"
 	"github.com/kelompok-2/ilmu-padi/shared/common"
 	"github.com/kelompok-2/ilmu-padi/usecase"
 )
 
 // Initialize Struct User Controller
 type UserController struct {
-	userUsecase *usecase.UserUsecase
+	userUsecase usecase.UserUsecase
+	rg          *gin.RouterGroup
+	authMid     middleware.AuthMiddleware
 }
 
-<<<<<<< HEAD
 // Construction to Access User Controller
-func NewUserController(userUsecase *usecase.UserUsecase) *UserController {
-	return &UserController{userUsecase: userUsecase}
+func NewUserController(userUsecase usecase.UserUsecase, rg *gin.RouterGroup, authMid middleware.AuthMiddleware) *UserController {
+	return &UserController{userUsecase: userUsecase, rg: rg, authMid: authMid}
 }
-=======
-func (ct *userCtrl) CreateCtrl(c *gin.Context) {
-	var payload entity.User
->>>>>>> dev/tsaqif
 
 // Find All
-func (ctrl *UserController) GetList(c *gin.Context) {
-	users, err := ctrl.userUsecase.FindAll()
+func (payload *UserController) GetAllProfile(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	size, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
+
+	user := c.MustGet("user").(string)
+
+	users, paging, err := payload.userUsecase.FindAll(page, size, user)
 	if err != nil {
 		common.SendErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	common.SendSingleResponse(c, users, "Success")
+
+	var interfaceSlice = make([]interface{}, len(users))
+	for i, v := range users {
+		interfaceSlice[i] = v
+	}
+	common.SendPagedResponse(c, interfaceSlice, paging, "Success")
 }
 
-<<<<<<< HEAD
 // Get Profile By ID
 func (ctrl *UserController) GetProfileByID(c *gin.Context) {
 	userID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		common.SendErrorResponse(c, http.StatusBadRequest, "Invalid user ID")
-=======
-func (ct *userCtrl) Routing(r *gin.RouterGroup) {
-	r.POST("/users", ct.CreateCtrl)
-}
-
-func NewUserCtrl(userUsecase usecase.IUserUsecase) *userCtrl {
-	return &userCtrl{
-		userUsecase: userUsecase,
->>>>>>> dev/tsaqif
+		common.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 	}
-	user, err := ctrl.userUsecase.GetProfileByID(uint(userID))
+	users := c.MustGet("user").(string)
+	user, err := ctrl.userUsecase.GetProfileByID(uint(userID), users)
 	if err != nil {
-		common.SendErrorResponse(c, http.StatusNotFound, "User not found")
+		common.SendErrorResponse(c, http.StatusNotFound, err.Error())
 		return
 	}
 	common.SendSingleResponse(c, user, "Success")
+}
+
+// Routing User
+func (u *UserController) Route() {
+	u.rg.GET(routes.GetAllProfile, u.authMid.RequireToken("admin"), u.GetAllProfile)
+	u.rg.GET(routes.GetProfileByID, u.authMid.RequireToken("admin"), u.GetProfileByID)
+	// u.rg.GET(routes.GetProfileByEmail, u.authMid.RequireToken("user"), u.GetAllProfile)
+	// u.rg.GET(routes.GetProfileBySubscriptionStatus, u.authMid.RequireToken("user"), u.GetAllProfile)
+	// u.rg.GET(routes.GetProfileByCourseName, u.authMid.RequireToken("user"), u.GetAllProfile)
 }

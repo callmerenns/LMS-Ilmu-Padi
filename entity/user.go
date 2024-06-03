@@ -8,7 +8,7 @@ import (
 
 // Initialize Struct User
 type User struct {
-	gorm.Model
+	ID                      uint      `gorm:"primaryKey;autoIncrement" json:"id"`
 	Name                    string    `json:"name"`
 	Email                   string    `json:"email,omitempty"`
 	Password                string    `json:"password"`
@@ -19,4 +19,7 @@ type User struct {
 	ResetToken              string    `json:"reset_token"`
 	ResetTokenExpiry        time.Time `json:"reset_token_expiry"`
 	Verified                bool      `json:"verified"`
+	CreatedAt               time.Time
+	UpdatedAt               time.Time
+	DeletedAt               gorm.DeletedAt `gorm:"index"`
 }

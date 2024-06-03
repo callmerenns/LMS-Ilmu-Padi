@@ -65,5 +65,6 @@ type ResetPasswordDto struct {
 
 // Initialize Struct Course ID Dto
 type CourseIDDto struct {
-	ID uint `uri:"id" binding:"required"`
+	ID     uint   `uri:"id" binding:"required"`
+	UserId string `json:"userId,omitempty"`
 }

@@ -2,9 +2,9 @@ package controller
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kelompok-2/ilmu-padi/config/routes"
 	"github.com/kelompok-2/ilmu-padi/entity/dto"
 	"github.com/kelompok-2/ilmu-padi/shared/common"
 	"github.com/kelompok-2/ilmu-padi/usecase"
@@ -12,25 +12,26 @@ import (
 
 // Initialize Struct Auth Controller
 type AuthController struct {
-	authUsecase *usecase.AuthUsecase
+	authUsecase usecase.AuthUsecase
+	rg          *gin.RouterGroup
 }
 
 // Construction to Access Auth Controller
-func NewAuthController(authUsecase *usecase.AuthUsecase) *AuthController {
-	return &AuthController{authUsecase: authUsecase}
+func NewAuthController(authUsecase usecase.AuthUsecase, rg *gin.RouterGroup) *AuthController {
+	return &AuthController{authUsecase: authUsecase, rg: rg}
 }
 
 // Register
-func (ctrl *AuthController) Register(c *gin.Context) {
-	input := dto.RegisterDto{}
+func (a *AuthController) Register(c *gin.Context) {
+	input := &dto.RegisterDto{}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		common.SendErrorResponse(c, http.StatusBadRequest, "Status Bad Request")
+		common.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	user, err := ctrl.authUsecase.Register(input)
+	user, err := a.authUsecase.Register(input)
 	if err != nil {
-		common.SendErrorResponse(c, http.StatusInternalServerError, "Status Internal Server Error")
+		common.SendErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -38,54 +39,44 @@ func (ctrl *AuthController) Register(c *gin.Context) {
 }
 
 // Login
-func (ctrl *AuthController) Login(c *gin.Context) {
-	input := dto.LoginDto{}
+func (a *AuthController) Login(c *gin.Context) {
+	input := &dto.LoginDto{}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		common.SendErrorResponse(c, http.StatusBadRequest, "Status Bad Request")
+		common.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	token, err := ctrl.authUsecase.Login(input)
+	token, err := a.authUsecase.Login(input)
 	if err != nil {
-		common.SendErrorResponse(c, http.StatusUnauthorized, "Status Unauthorized")
+		common.SendErrorResponse(c, http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     "jwt",
-		Value:    token,
-		Expires:  time.Now().Add(24 * time.Hour),
-		HttpOnly: true,
-	})
+	// Set token in cookie
+	c.SetCookie("token", token, 3600, "/", "", false, true)
 
 	common.SendSuccessResponse(c, http.StatusOK, "Login Success")
 }
 
 // Logout
-func (ctrl *AuthController) Logout(c *gin.Context) {
-	if err := ctrl.authUsecase.Logout(); err != nil {
-		common.SendErrorResponse(c, http.StatusInternalServerError, "Status Internal Server Error")
+func (a *AuthController) Logout(c *gin.Context) {
+	if err := a.authUsecase.Logout(); err != nil {
+		common.SendErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	// Clear the token cookie
-	http.SetCookie(c.Writer, &http.Cookie{
-		Name:     "jwt",
-		Value:    "",
-		Expires:  time.Unix(0, 0),
-		Path:     "/",
-		HttpOnly: true,
-	})
+	c.SetCookie("token", "", -1, "/", "", false, true)
 
 	common.SendSuccessResponse(c, http.StatusOK, "Logout Success")
 }
 
 // Verify Email
-func (ctrl *AuthController) VerifyEmail(c *gin.Context) {
+func (a *AuthController) VerifyEmail(c *gin.Context) {
 	token := c.Query("token")
-	err := ctrl.authUsecase.VerifyEmail(token)
+	err := a.authUsecase.VerifyEmail(token)
 	if err != nil {
-		common.SendErrorResponse(c, http.StatusBadRequest, "Status Bad Request")
+		common.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -93,15 +84,15 @@ func (ctrl *AuthController) VerifyEmail(c *gin.Context) {
 }
 
 // Forgot Password
-func (ctrl *AuthController) ForgotPassword(c *gin.Context) {
-	input := dto.ForgotPasswordDto{}
+func (a *AuthController) ForgotPassword(c *gin.Context) {
+	input := &dto.ForgotPasswordDto{}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		common.SendErrorResponse(c, http.StatusBadRequest, "Status Bad Request")
+		common.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if err := ctrl.authUsecase.ForgotPassword(input); err != nil {
+	if err := a.authUsecase.ForgotPassword(input); err != nil {
 		common.SendErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -110,18 +101,27 @@ func (ctrl *AuthController) ForgotPassword(c *gin.Context) {
 }
 
 // Reset Password
-func (ctrl *AuthController) ResetPassword(c *gin.Context) {
-	input := dto.ResetPasswordDto{}
+func (a *AuthController) ResetPassword(c *gin.Context) {
+	input := &dto.ResetPasswordDto{}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		common.SendErrorResponse(c, http.StatusBadRequest, "Status Bad Request")
+		common.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if err := ctrl.authUsecase.ResetPassword(input); err != nil {
-		common.SendErrorResponse(c, http.StatusInternalServerError, "Status Internal Server Error")
+	if err := a.authUsecase.ResetPassword(input); err != nil {
+		common.SendErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	common.SendSuccessResponse(c, http.StatusOK, "Password Has Been Reset!")
+}
+
+// Routing Auth
+func (a *AuthController) Route() {
+	a.rg.POST(routes.Login, a.Login)
+	a.rg.POST(routes.Register, a.Register)
+	a.rg.POST(routes.Logout, a.Logout)
+	a.rg.POST(routes.ForgotPassword, a.ForgotPassword)
+	a.rg.POST(routes.ResetPassword, a.ResetPassword)
 }

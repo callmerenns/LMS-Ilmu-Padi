@@ -5,6 +5,8 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kelompok-2/ilmu-padi/config/routes"
+	"github.com/kelompok-2/ilmu-padi/delivery/middleware"
 	"github.com/kelompok-2/ilmu-padi/entity"
 	"github.com/kelompok-2/ilmu-padi/shared/common"
 	"github.com/kelompok-2/ilmu-padi/usecase"
@@ -12,11 +14,15 @@ import (
 
 type UserCoursesFavouriteController struct {
 	userCoursesFavouriteUsecase usecase.IUserCoursesFavouriteUsecase
+	rg                          *gin.RouterGroup
+	authMid                     middleware.AuthMiddleware
 }
 
-func NewUserCoursesFavouriteController(userCoursesFavouriteUsecase usecase.IUserCoursesFavouriteUsecase) *UserCoursesFavouriteController {
+func NewUserCoursesFavouriteController(userCoursesFavouriteUsecase usecase.IUserCoursesFavouriteUsecase, rg *gin.RouterGroup, authMid middleware.AuthMiddleware) *UserCoursesFavouriteController {
 	return &UserCoursesFavouriteController{
 		userCoursesFavouriteUsecase: userCoursesFavouriteUsecase,
+		rg:                          rg,
+		authMid:                     authMid,
 	}
 }
 
@@ -51,4 +57,10 @@ func (u *UserCoursesFavouriteController) GetUserFavouriteList(c *gin.Context) {
 	}
 
 	common.SendSingleResponse(c, favouriteList, "Success")
+}
+
+// Routing User Course Favorite
+func (u *UserCoursesFavouriteController) Route() {
+	u.rg.GET(routes.GetUserCourseFavouriteList, u.authMid.RequireToken("admin", "user"), u.GetUserFavouriteList)
+	u.rg.POST(routes.PostUserCourseFavourite, u.authMid.RequireToken("admin", "user"), u.AddOrRemoveCourseFavourite)
 }
