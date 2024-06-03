@@ -9,22 +9,27 @@ import (
 )
 
 // Initialize Struct Payment Usecase
-type PaymentUsecase struct {
-	snapClient        *snap.Client
-	paymentRepository *repository.PaymentRepository
+type paymentUsecase struct {
+	snapClient        snap.Client
+	paymentRepository repository.PaymentRepository
+}
+
+// Initialize Interface Payment Sender Usecase
+type PaymentUsecase interface {
+	CreateSnapTransaction(req *snap.Request) (*snap.Response, error)
 }
 
 // Construction to Access Payment Usecase
-func NewPaymentUsecase(snapClient *snap.Client, paymentRepository *repository.PaymentRepository) *PaymentUsecase {
-	return &PaymentUsecase{
+func NewPaymentUsecase(snapClient snap.Client, paymentRepository repository.PaymentRepository) PaymentUsecase {
+	return &paymentUsecase{
 		snapClient:        snapClient,
 		paymentRepository: paymentRepository,
 	}
 }
 
 // Create Snap Transaction
-func (u *PaymentUsecase) CreateSnapTransaction(req *snap.Request) (*snap.Response, error) {
-	snapResp, err := u.snapClient.CreateTransaction(req)
+func (p *paymentUsecase) CreateSnapTransaction(req *snap.Request) (*snap.Response, error) {
+	snapResp, err := p.snapClient.CreateTransaction(req)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +44,7 @@ func (u *PaymentUsecase) CreateSnapTransaction(req *snap.Request) (*snap.Respons
 		Paid_At:        time.Now(),
 	}
 
-	if err := u.paymentRepository.SavePayment(payment); err != nil {
+	if err := p.paymentRepository.SavePayment(payment); err != nil {
 		return nil, err
 	}
 

@@ -1,10 +1,14 @@
 package entity
 
-import "gorm.io/gorm"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 // Initialize Struct Course
 type Course struct {
-	gorm.Model
+	ID              uint    `gorm:"primaryKey;autoIncrement" json:"id"`
 	Title           string  `json:"title"`
 	Description     string  `json:"description"`
 	Category        string  `json:"category"`
@@ -12,4 +16,8 @@ type Course struct {
 	Duration        string  `json:"duration"`
 	Instructor_Name string  `json:"name_instructor"`
 	Rating          float32 `json:"rating"`
+	UserId          string  `json:"userId,omitempty"`
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	DeletedAt       gorm.DeletedAt `gorm:"index"`
 }

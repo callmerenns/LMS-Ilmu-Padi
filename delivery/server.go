@@ -5,32 +5,37 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/kelompok-2/ilmu-padi/config"
+	"github.com/kelompok-2/ilmu-padi/config/routes"
+	"github.com/kelompok-2/ilmu-padi/delivery/controller"
+	"github.com/kelompok-2/ilmu-padi/delivery/middleware"
 	"github.com/kelompok-2/ilmu-padi/entity"
-	_ "github.com/lib/pq"
+	"github.com/kelompok-2/ilmu-padi/repository"
+	"github.com/kelompok-2/ilmu-padi/shared/service"
+	"github.com/kelompok-2/ilmu-padi/usecase"
+	"github.com/midtrans/midtrans-go/snap"
 )
 
 type Server struct {
-	// expenseUc  usecase.CourseUsecase
-	// userUc     usecase.UserUsecase
-	// authUsc    usecase
-	// jwtService service.JwtService
-	engine *gin.Engine
-	host   string
+	authUsc        usecase.AuthUsecase
+	userUc         usecase.UserUsecase
+	courseUc       usecase.CourseUsecase
+	userFavoriteUc usecase.UserCoursesFavouriteUsecase
+	paymentUc      usecase.PaymentUsecase
+	jwtService     service.JwtService
+	engine         *gin.Engine
+	host           string
 }
 
-var (
-	db  *gorm.DB
-	err error
-)
-
 func (s *Server) initRoute() {
-	// rg := s.engine.Group(config.ApiGroup)
-
-	// controller.NewAuthController(s.authUsc, rg).Route()
-	// controller.NewUserController(s.userUc, rg, authMid).Route()
-	// controller.NewExpenseController(s.expenseUc, rg, authMid).Route()
-
+	rg := s.engine.Group(routes.ApiGroup)
+	authMid := middleware.NewAuthMiddleware(s.jwtService)
+	controller.NewAuthController(s.authUsc, rg).Route()
+	controller.NewUserController(s.userUc, rg, authMid).Route()
+	controller.NewCourseController(s.courseUc, rg, authMid).Route()
+	controller.NewUserCoursesFavouriteController(s.userFavoriteUc, rg, authMid).Route()
+	controller.NewPaymentController(s.paymentUc, rg, authMid).Route()
 }
 
 func (s *Server) Run() {
@@ -45,36 +50,43 @@ func NewServer() *Server {
 	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		cfg.DbHost, cfg.DbPort, cfg.DbUser, cfg.DbPassword, cfg.DbName)
 
-	db, err = gorm.Open("postgres", dsn)
+	db, err := gorm.Open(cfg.DbDriver, dsn)
 	if err != nil {
 		panic("failed to connect to database")
 	}
 
-	db.AutoMigrate(&entity.User{}, &entity.Course{}, &entity.Subscription{}, &entity.UserCoursesFavourite{})
+	db.AutoMigrate(&entity.User{}, &entity.Course{}, &entity.Subscription{}, &entity.UserCoursesFavourite{}, &entity.Payment{})
 
-	// jwtService := service.NewJwtService(cfg.TokenConfig)
-	// courseRepo := repository.NewCourseRepository(db)
-	// userRepo := repository.NewUserRepository(db)
+	jwtService := service.NewJwtService(cfg.TokenConfig)
+	mailService := service.NewMailService(cfg.SmtpConfig)
+	snapClientService := snap.Client{}
 
-	// courseUc := usecase.NewExpenseUseCase(courseRepo)
-	// userUc := usecase.NewUserUseCase(userRepo)
-	// authUc := usecase.NewAuthUseCase(userUc, jwtService)
+	// Setup Configuration Layer Repo
+	authRepo := repository.NewAuthRepository(db)
+	userRepo := repository.NewUserRepository(db)
+	courseRepo := repository.NewCourseRepository(db)
+	userCourseFavoriteRepo := repository.NewUserCoursesFavouriteRepository(db)
+	// mailRepo := repository.New
+	paymentRepo := repository.NewPaymentRepository(db)
 
-	// userRepository := repository.NewUserRepository(db)
-	// userUsecase := usecase.NewUserUsecase(userRepository)
-	// userController := controller.NewUserController(userUsecase)
-
-	// courseRepository := repository.NewCourseRepository(db)
-	// courseUsecase := usecase.NewCourseUsecase(courseRepository)
-	// courseController := controller.NewCourseController(courseUsecase)
+	// Setup Configuration Layer Usecase
+	authUsecase := usecase.NewAuthUsecase(authRepo, jwtService, *mailService)
+	userUsecase := usecase.NewUserUsecase(userRepo)
+	courseUsecase := usecase.NewCourseUsecase(courseRepo)
+	userCourseFavotiteUsecase := usecase.NewUserCoursesFavouriteUsecase(userCourseFavoriteRepo)
+	paymentUsecase := usecase.NewPaymentUsecase(snapClientService, paymentRepo)
 
 	engine := gin.Default()
 	host := fmt.Sprintf(":%s", cfg.ApiPort)
 
 	return &Server{
-		// courseUc: courseUc,
-		// userController: userController,
-		engine: engine,
-		host:   host,
+		authUsc:        authUsecase,
+		userUc:         userUsecase,
+		courseUc:       courseUsecase,
+		userFavoriteUc: userCourseFavotiteUsecase,
+		paymentUc:      paymentUsecase,
+		jwtService:     jwtService,
+		engine:         engine,
+		host:           host,
 	}
 }

@@ -1,48 +1,65 @@
 package service
 
 import (
-	"errors"
+	"fmt"
+	"strconv"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
+	"github.com/kelompok-2/ilmu-padi/config"
+	"github.com/kelompok-2/ilmu-padi/entity"
+	"github.com/kelompok-2/ilmu-padi/entity/dto"
+	"github.com/kelompok-2/ilmu-padi/shared/model"
 )
 
-var jwtKey = []byte("my_secret_key")
-
-// Struct Claims
-type Claims struct {
-	UserID uint `json:"user_id"`
-	jwt.StandardClaims
+type JwtService interface {
+	CreateToken(author entity.User) (dto.AuthResponseDto, error)
+	ParseToken(tokenString string) (map[string]interface{}, error)
 }
 
-// Function Generate Token
-func GenerateJWT(userID uint) (string, error) {
-	expirationTime := time.Now().Add(24 * time.Hour)
-	claims := &Claims{
-		UserID: userID,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationTime.Unix(),
+type jwtService struct {
+	cfg config.TokenConfig
+}
+
+func (j *jwtService) CreateToken(user entity.User) (dto.AuthResponseDto, error) {
+	claims := model.MyCustomClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    j.cfg.TokenIssue,
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(j.cfg.TokenExpire)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
+		UserId: strconv.FormatUint(uint64(user.ID), 10),
+		Role:   user.Role,
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtKey)
+	token := jwt.NewWithClaims(j.cfg.SigningMethod, claims)
+	ss, err := token.SignedString(j.cfg.TokenSecret)
+	if err != nil {
+		return dto.AuthResponseDto{}, fmt.Errorf("oops, failed to create token: %v", err)
+	}
+	return dto.AuthResponseDto{Token: ss}, nil
 }
 
-// Function Validate Token
-func ValidateJWT(tokenStr string) (*Claims, error) {
-	claims := &Claims{}
-	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
-		return jwtKey, nil
+func (s *jwtService) ParseToken(tokenString string) (map[string]interface{}, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// Ensure the token method conforms to "SigningMethodHMAC"
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return s.cfg.TokenSecret, nil
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("oops, failed to verify token: %v", err)
 	}
 
-	if !token.Valid {
-		return nil, errors.New("invalid token")
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		return claims, nil
+	} else {
+		return nil, fmt.Errorf("oops, failed to parse token claims")
 	}
+}
 
-	return claims, nil
+func NewJwtService(cfg config.TokenConfig) JwtService {
+	return &jwtService{cfg: cfg}
 }

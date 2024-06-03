@@ -1,143 +1,89 @@
 package middleware
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 	"strings"
-	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
-	"github.com/kelompok-2/ilmu-padi/repository"
+	"github.com/kelompok-2/ilmu-padi/shared/service"
 )
 
-var jwtKey = []byte("my_secret_key")
-
-type Claims struct {
-	UserID uint `json:"user_id"`
-	jwt.StandardClaims
+type AuthMiddleware interface {
+	RequireToken(roles ...string) gin.HandlerFunc
 }
 
-func GenerateJWT(userID uint) (string, error) {
-	expirationTime := time.Now().Add(24 * time.Hour)
-	claims := &Claims{
-		UserID: userID,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationTime.Unix(),
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtKey)
+type authMiddleware struct {
+	jwtService service.JwtService
 }
 
-func JWTAuthMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		tokenString := c.GetHeader("Authorization")
-		if tokenString == "" {
+type AuthHeader struct {
+	AuthorizationHeader string `header:"Authorization"`
+}
 
-			tokenString, _ = c.Cookie("jwt")
-			if tokenString == "" {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
-				c.Abort()
+func (a *authMiddleware) RequireToken(roles ...string) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		var authHeader AuthHeader
+		if err := ctx.ShouldBindHeader(&authHeader); err != nil {
+			log.Printf("RequireToken: Error binding header: %v \n", err)
+		}
+
+		tokenHeader := strings.TrimPrefix(authHeader.AuthorizationHeader, "Bearer ")
+
+		if tokenHeader == "" {
+			// Log when checking the cookie
+			log.Println("RequireToken: Checking cookie for token")
+			cookie, err := ctx.Cookie("token")
+			if err != nil {
+				log.Println("RequireToken: Error retrieving token from cookie:", err)
+				ctx.AbortWithStatus(http.StatusUnauthorized)
 				return
 			}
-		} else {
-			tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+			tokenHeader = cookie
+			log.Printf("RequireToken: Retrieved token from cookie: %v\n", tokenHeader)
 		}
 
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-			}
-			return []byte("YOUR_SECRET_KEY"), nil
-		})
-
-		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-			c.Abort()
+		if tokenHeader == "" {
+			log.Println("RequireToken: Token is empty")
+			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-			c.Abort()
-			return
-		}
-
-		userID := uint(claims["user_id"].(float64))
-		c.Set("user_id", userID)
-		c.Next()
-	}
-}
-
-// func RoleMiddleware(roles ...string) gin.HandlerFunc {
-// 	return func(c *gin.Context) {
-// 		userID, exists := c.Get("user_id")
-// 		if !exists {
-// 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found"})
-// 			c.Abort()
-// 			return
-// 		}
-
-// 		userRepo := c.MustGet("userRepo").(*repository.UserRepository)
-// 		user, err := userRepo.FindByID(userID.(uint))
-// 		if err != nil {
-// 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
-// 			c.Abort()
-// 			return
-// 		}
-
-// 		// Assuming user has a field Roles which is a slice of strings
-// 		userRoles := map[string]struct{}{}
-// 		for _, role := range user.Roles {
-// 			userRoles[role] = struct{}{}
-// 		}
-
-// 		authorized := false
-// 		for _, role := range roles {
-// 			if _, ok := userRoles[role]; ok {
-// 				authorized = true
-// 				break
-// 			}
-// 		}
-
-// 		if !authorized {
-// 			c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
-// 			c.Abort()
-// 			return
-// 		}
-
-// 		c.Next()
-// 	}
-// }
-
-func RoleMiddleware(allowedRoles ...string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		userID := c.MustGet("user_id").(uint)
-		userRepo := repository.NewUserRepository(nil) // Pass actual DB connection
-
-		roles, err := userRepo.GetRolesByUserID(userID)
+		claims, err := a.jwtService.ParseToken(tokenHeader)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
-			c.Abort()
+			log.Printf("RequireToken: Error parsing token: %v \n", err)
+			ctx.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
-		roleMap := make(map[string]bool)
-		for _, role := range roles {
-			roleMap[role.Name] = true
+		ctx.Set("user", claims["userId"])
+
+		role, ok := claims["role"]
+		if !ok {
+			log.Println("RequireToken: Missing role in token")
+			ctx.AbortWithStatus(http.StatusUnauthorized)
+			return
 		}
 
-		for _, allowedRole := range allowedRoles {
-			if roleMap[allowedRole] {
-				c.Next()
-				return
-			}
+		if !isValidRole(role.(string), roles) {
+			log.Println("RequireToken: Invalid role")
+			ctx.AbortWithStatus(http.StatusForbidden)
+			return
 		}
 
-		c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
-		c.Abort()
+		ctx.Next()
 	}
+}
+
+func isValidRole(userRole string, validRoles []string) bool {
+	for _, role := range validRoles {
+		if userRole == role {
+			return true
+		}
+	}
+	return false
+}
+
+func NewAuthMiddleware(jwtService service.JwtService) AuthMiddleware {
+	return &authMiddleware{jwtService: jwtService}
 }

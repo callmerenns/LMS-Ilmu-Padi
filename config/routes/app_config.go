@@ -1,30 +1,38 @@
 package routes
 
 const (
+	// Route Middleware
+	GroupMiddleware = "/asset"
+
 	// Route Group
 	ApiGroup = "/api/v1"
 
 	// Route Course
-	PostCourse    = "/courses"
-	GetCourseList = "/courses"
-	GetCourse     = "/courses/:id"
-	GetCourseName = "/courses/category/:category"
-	PutCourse     = "/courses/:id"
-	DelCourse     = "/courses/:id"
+	GetAllCourse        = "/asset/courses"
+	GetCourseByID       = "/asset/courses/:id"
+	GetCourseByCategory = "/asset/courses/category/:category"
+	PostCourse          = "/asset/courses"
+	PutCourse           = "/asset/courses/:id"
+	DelCourse           = "/asset/courses/:id"
 
 	// Route User Course Favourite
-	PostUserCourseFavourite    = "/user/course/favourite"
-	GetUserCourseFavouriteList = "/user/course/favourite/:user_id"
+	PostUserCourseFavourite    = "/course/favourite"
+	GetUserCourseFavouriteList = "/course/favourite/:user_id"
 
 	// Route Authentitacion
-	Register       = "/register"
-	Login          = "/login"
-	Logout         = "/logout"
-	ForgotPassword = "/forgot"
+	Register       = "/auth/register"
+	Login          = "/auth/login"
+	Logout         = "/auth/logout"
+	ForgotPassword = "/auth/forgot-password"
+	ResetPassword  = "/auth/reset-password"
 
 	// Route User
-	GetUserList = "/profile"
+	GetAllProfile                  = "/profile"
+	GetProfileByID                 = "/profile/:id"
+	GetProfileByEmail              = "/profile/:email"
+	GetProfileBySubscriptionStatus = "/profile/:subscription-status"
+	GetProfileByCourseName         = "/profile/:course"
 
 	// Route Payment
-	PostPayment = "/payment"
+	PostPayment = "/transaction/payment"
 )

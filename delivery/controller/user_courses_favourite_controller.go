@@ -5,18 +5,24 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kelompok-2/ilmu-padi/config/routes"
+	"github.com/kelompok-2/ilmu-padi/delivery/middleware"
 	"github.com/kelompok-2/ilmu-padi/entity"
 	"github.com/kelompok-2/ilmu-padi/shared/common"
 	"github.com/kelompok-2/ilmu-padi/usecase"
 )
 
 type UserCoursesFavouriteController struct {
-	userCoursesFavouriteUsecase *usecase.UserCoursesFavouriteUsecase
+	userCoursesFavouriteUsecase usecase.UserCoursesFavouriteUsecase
+	rg                          *gin.RouterGroup
+	authMid                     middleware.AuthMiddleware
 }
 
-func NewUserCoursesFavouriteController(userCoursesFavouriteUsecase *usecase.UserCoursesFavouriteUsecase) *UserCoursesFavouriteController {
+func NewUserCoursesFavouriteController(userCoursesFavouriteUsecase usecase.UserCoursesFavouriteUsecase, rg *gin.RouterGroup, authMid middleware.AuthMiddleware) *UserCoursesFavouriteController {
 	return &UserCoursesFavouriteController{
 		userCoursesFavouriteUsecase: userCoursesFavouriteUsecase,
+		rg:                          rg,
+		authMid:                     authMid,
 	}
 }
 
@@ -28,7 +34,7 @@ func (u *UserCoursesFavouriteController) AddOrRemoveCourseFavourite(c *gin.Conte
 		return
 	}
 
-	err, msg := u.userCoursesFavouriteUsecase.AddOrRemoveToFavourite(ucf)
+	msg, err := u.userCoursesFavouriteUsecase.AddOrRemoveToFavourite(ucf)
 	if err != nil {
 		common.SendErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
@@ -51,4 +57,10 @@ func (u *UserCoursesFavouriteController) GetUserFavouriteList(c *gin.Context) {
 	}
 
 	common.SendSingleResponse(c, favouriteList, "Success")
+}
+
+// Routing User Course Favorite
+func (u *UserCoursesFavouriteController) Route() {
+	u.rg.GET(routes.GetUserCourseFavouriteList, u.authMid.RequireToken("admin", "user"), u.GetUserFavouriteList)
+	u.rg.POST(routes.PostUserCourseFavourite, u.authMid.RequireToken("admin", "user"), u.AddOrRemoveCourseFavourite)
 }

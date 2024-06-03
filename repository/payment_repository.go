@@ -8,20 +8,25 @@ import (
 )
 
 // Initialize Struct Payment Repository
-type PaymentRepository struct {
+type paymentRepository struct {
 	db *gorm.DB
 }
 
+// Initialize Interface Payment Sender Repository
+type PaymentRepository interface {
+	SavePayment(payment entity.Payment) error
+}
+
 // Construction to Access Payment Repository
-func NewPaymentRepository(db *gorm.DB) *PaymentRepository {
-	return &PaymentRepository{db: db}
+func NewPaymentRepository(db *gorm.DB) PaymentRepository {
+	return &paymentRepository{db: db}
 }
 
 // Save Payment
-func (r *PaymentRepository) SavePayment(payment entity.Payment) error {
-	if r.db == nil {
+func (p *paymentRepository) SavePayment(payment entity.Payment) error {
+	if p.db == nil {
 		log.Fatal("Database connection is nil in SavePayment")
 	}
 
-	return r.db.Create(&payment).Error
+	return p.db.Create(&payment).Error
 }

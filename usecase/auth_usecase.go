@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/kelompok-2/ilmu-padi/client"
 	"github.com/kelompok-2/ilmu-padi/config"
 	"github.com/kelompok-2/ilmu-padi/entity"
@@ -17,26 +17,39 @@ import (
 )
 
 // Initialize Struct Auth Usecase
-type AuthUsecase struct {
-	authRepo    *repository.AuthRepository
-	mailService *service.MailService
+type authUsecase struct {
+	authRepo    repository.AuthRepository
+	jwtService  service.JwtService
+	mailService service.MailService
 }
 
-// Initialize Interface Email Sender Repository
+// Initialize Interface Email Sender Usecase
 type EmailSender interface {
 	Send(to, subject, body string) error
 }
 
+// Initialize Interface Auth Sender Usecase
+type AuthUsecase interface {
+	Register(data *dto.RegisterDto) (*entity.User, error)
+	Login(data *dto.LoginDto) (string, error)
+	Logout() error
+	GenerateResetToken() (string, error)
+	ForgotPassword(data *dto.ForgotPasswordDto) error
+	ResetPassword(data *dto.ResetPasswordDto) error
+	GenerateVerificationToken() (string, error)
+	VerifyEmail(token string) error
+}
+
 // Construction to Access Auth Usecase
-func NewAuthUsecase(authRepository *repository.AuthRepository, mailService *service.MailService) *AuthUsecase {
-	return &AuthUsecase{authRepo: authRepository, mailService: mailService}
+func NewAuthUsecase(authRepository repository.AuthRepository, jwtService service.JwtService, mailService service.MailService) AuthUsecase {
+	return &authUsecase{authRepo: authRepository, jwtService: jwtService, mailService: mailService}
 }
 
 // Register
-func (u *AuthUsecase) Register(data dto.RegisterDto) (*entity.User, error) {
+func (u *authUsecase) Register(data *dto.RegisterDto) (*entity.User, error) {
 	hashedPassword, err := config.HashPassword(data.Password)
 	if err != nil {
-		return nil, err
+		return &entity.User{}, err
 	}
 
 	user := &entity.User{
@@ -47,19 +60,19 @@ func (u *AuthUsecase) Register(data dto.RegisterDto) (*entity.User, error) {
 	}
 
 	if err := u.authRepo.Create(user); err != nil {
-		return nil, err
+		return &entity.User{}, err
 	}
 
 	verificationToken, err := u.GenerateVerificationToken()
 	if err != nil {
-		return nil, err
+		return &entity.User{}, err
 	}
 
 	user.VerificationToken = verificationToken
 	user.VerificationTokenExpiry = time.Now().Add(24 * time.Hour)
 
 	if err := u.authRepo.Update(user); err != nil {
-		return nil, err
+		return &entity.User{}, err
 	}
 
 	verificationURL := "http://ilmupadi.com/verify-email?token=" + verificationToken
@@ -69,14 +82,39 @@ func (u *AuthUsecase) Register(data dto.RegisterDto) (*entity.User, error) {
 	html := utils.FormatTemplate(client.VerifyEmailTemplate, replacements)
 
 	if err := u.mailService.SendMail("Reset Password", html, []string{user.Email}); err != nil {
-		return nil, err
+		return &entity.User{}, err
 	}
 
 	return user, nil
 }
 
 // Login
-func (u *AuthUsecase) Login(data dto.LoginDto) (string, error) {
+// func (u *authUsecase) Login(data *dto.LoginDto) (string, error) {
+// 	var tokenSecret config.Config
+// 	user, err := u.authRepo.FindByEmailAuth(data.Email)
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	if !config.CheckPasswordHash(data.Password, user.Password) {
+// 		return "", errors.New("invalid email or password")
+// 	}
+
+// 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+// 		"user_id": user.ID,
+// 		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+// 	})
+
+// 	tokenString, err := token.SignedString(tokenSecret.TokenConfig.TokenSecret)
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	return tokenString, nil
+// }
+
+func (u *authUsecase) Login(data *dto.LoginDto) (string, error) {
+	var configConfig config.Config
 	user, err := u.authRepo.FindByEmailAuth(data.Email)
 	if err != nil {
 		return "", err
@@ -86,12 +124,12 @@ func (u *AuthUsecase) Login(data dto.LoginDto) (string, error) {
 		return "", errors.New("invalid email or password")
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+	token := jwt.NewWithClaims(configConfig.TokenConfig.SigningMethod, jwt.MapClaims{
 		"user_id": user.ID,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+		"exp":     time.Now().Add(configConfig.TokenConfig.TokenExpire).Unix(),
 	})
 
-	tokenString, err := token.SignedString([]byte("YOUR_SECRET_KEY"))
+	tokenString, err := token.SignedString(configConfig.TokenConfig.TokenSecret)
 	if err != nil {
 		return "", err
 	}
@@ -100,12 +138,12 @@ func (u *AuthUsecase) Login(data dto.LoginDto) (string, error) {
 }
 
 // Logout
-func (u *AuthUsecase) Logout() error {
+func (u *authUsecase) Logout() error {
 	return nil
 }
 
 // Generate Reset Token
-func (u *AuthUsecase) GenerateResetToken() (string, error) {
+func (u *authUsecase) GenerateResetToken() (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
 		return "", err
@@ -114,7 +152,7 @@ func (u *AuthUsecase) GenerateResetToken() (string, error) {
 }
 
 // Forgot Password
-func (u *AuthUsecase) ForgotPassword(data dto.ForgotPasswordDto) error {
+func (u *authUsecase) ForgotPassword(data *dto.ForgotPasswordDto) error {
 	user, err := u.authRepo.FindByEmailAuth(data.Email)
 	if err != nil {
 		return errors.New("user not found")
@@ -142,7 +180,7 @@ func (u *AuthUsecase) ForgotPassword(data dto.ForgotPasswordDto) error {
 }
 
 // Reset Password
-func (u *AuthUsecase) ResetPassword(data dto.ResetPasswordDto) error {
+func (u *authUsecase) ResetPassword(data *dto.ResetPasswordDto) error {
 	user, err := u.authRepo.FindByResetToken(data.Token)
 	if err != nil {
 		return errors.New("invalid token")
@@ -165,7 +203,7 @@ func (u *AuthUsecase) ResetPassword(data dto.ResetPasswordDto) error {
 }
 
 // Generate Verification Token
-func (u *AuthUsecase) GenerateVerificationToken() (string, error) {
+func (u *authUsecase) GenerateVerificationToken() (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
 		return "", err
@@ -174,7 +212,7 @@ func (u *AuthUsecase) GenerateVerificationToken() (string, error) {
 }
 
 // Verify Email
-func (u *AuthUsecase) VerifyEmail(token string) error {
+func (u *authUsecase) VerifyEmail(token string) error {
 	user, err := u.authRepo.FindByVerificationToken(token)
 	if err != nil {
 		return errors.New("invalid token")

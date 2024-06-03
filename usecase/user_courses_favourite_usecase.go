@@ -5,20 +5,30 @@ import (
 	"github.com/kelompok-2/ilmu-padi/repository"
 )
 
-type UserCoursesFavouriteUsecase struct {
-	userCoursesFavouriteRepository *repository.UserCoursesFavouriteRepository
+// Initialize Struct User Courses Usecase
+type userCoursesFavouriteUsecase struct {
+	userCoursesFavouriteRepository repository.UserCoursesFavouriteRepository
 }
 
-func NewUserCoursesFavouriteUsecase(userCoursesFavouriteRepository *repository.UserCoursesFavouriteRepository) *UserCoursesFavouriteUsecase {
-	return &UserCoursesFavouriteUsecase{
+// Initialize Interface User Course Sender Usecase
+type UserCoursesFavouriteUsecase interface {
+	AddOrRemoveToFavourite(ucf entity.UserCoursesFavourite) (string, error)
+	GetFavouriteList(user_id uint) ([]entity.Course, error)
+}
+
+// Construction to Access User Courses Usecase
+func NewUserCoursesFavouriteUsecase(userCoursesFavouriteRepository repository.UserCoursesFavouriteRepository) UserCoursesFavouriteUsecase {
+	return &userCoursesFavouriteUsecase{
 		userCoursesFavouriteRepository: userCoursesFavouriteRepository,
 	}
 }
 
-func (uc *UserCoursesFavouriteUsecase) AddOrRemoveToFavourite(ucf entity.UserCoursesFavourite) (error, string) {
+// Add Or Remove To Favorite
+func (uc *userCoursesFavouriteUsecase) AddOrRemoveToFavourite(ucf entity.UserCoursesFavourite) (string, error) {
 	return uc.userCoursesFavouriteRepository.AddOrRemoveToFavourite(ucf)
 }
 
-func (uc *UserCoursesFavouriteUsecase) GetFavouriteList(user_id uint) ([]entity.Course, error) {
+// Get Favorite List
+func (uc *userCoursesFavouriteUsecase) GetFavouriteList(user_id uint) ([]entity.Course, error) {
 	return uc.userCoursesFavouriteRepository.FindAllByUserID(user_id)
 }
