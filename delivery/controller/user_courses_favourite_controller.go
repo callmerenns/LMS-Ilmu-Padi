@@ -11,10 +11,10 @@ import (
 )
 
 type UserCoursesFavouriteController struct {
-	userCoursesFavouriteUsecase *usecase.UserCoursesFavouriteUsecase
+	userCoursesFavouriteUsecase usecase.IUserCoursesFavouriteUsecase
 }
 
-func NewUserCoursesFavouriteController(userCoursesFavouriteUsecase *usecase.UserCoursesFavouriteUsecase) *UserCoursesFavouriteController {
+func NewUserCoursesFavouriteController(userCoursesFavouriteUsecase usecase.IUserCoursesFavouriteUsecase) *UserCoursesFavouriteController {
 	return &UserCoursesFavouriteController{
 		userCoursesFavouriteUsecase: userCoursesFavouriteUsecase,
 	}
@@ -44,7 +44,7 @@ func (u *UserCoursesFavouriteController) GetUserFavouriteList(c *gin.Context) {
 		return
 	}
 
-	favouriteList, err := u.userCoursesFavouriteUsecase.GetFavouriteList(uint(userID))
+	favouriteList, err := u.userCoursesFavouriteUsecase.FindAllByUserID(uint(userID))
 	if err != nil {
 		common.SendErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return

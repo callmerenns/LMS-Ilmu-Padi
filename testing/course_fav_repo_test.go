@@ -15,7 +15,7 @@ type CourseFavouriteRepoTestSuite struct {
 	suite.Suite
 	mockDb  *sql.DB
 	mockSql sqlmock.Sqlmock
-	repo    repository.UserCoursesFavouriteRepository
+	repo    repository.IUserCoursesFavouriteRepository
 }
 
 var payload = entity.UserCoursesFavourite{
@@ -76,7 +76,7 @@ func (s *CourseFavouriteRepoTestSuite) SetupTest() {
 		panic(err)
 	}
 
-	s.repo = *repository.NewUserCoursesFavouriteRepository(gormDb)
+	s.repo = repository.NewUserCoursesFavouriteRepository(gormDb)
 }
 
 func TestCourseFavouriteRepoTestSuite(t *testing.T) {

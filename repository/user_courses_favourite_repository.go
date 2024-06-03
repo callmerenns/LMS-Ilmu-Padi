@@ -5,15 +5,20 @@ import (
 	"github.com/kelompok-2/ilmu-padi/entity"
 )
 
-type UserCoursesFavouriteRepository struct {
+type userCoursesFavouriteRepository struct {
 	db *gorm.DB
 }
 
-func NewUserCoursesFavouriteRepository(db *gorm.DB) *UserCoursesFavouriteRepository {
-	return &UserCoursesFavouriteRepository{db: db}
+type IUserCoursesFavouriteRepository interface {
+	AddOrRemoveToFavourite(userCourseFavourite entity.UserCoursesFavourite) (error, string)
+	FindAllByUserID(userid uint) ([]entity.Course, error)
 }
 
-func (r *UserCoursesFavouriteRepository) AddOrRemoveToFavourite(userCourseFavourite entity.UserCoursesFavourite) (error, string) {
+func NewUserCoursesFavouriteRepository(db *gorm.DB) IUserCoursesFavouriteRepository {
+	return &userCoursesFavouriteRepository{db: db}
+}
+
+func (r *userCoursesFavouriteRepository) AddOrRemoveToFavourite(userCourseFavourite entity.UserCoursesFavourite) (error, string) {
 	var ucf entity.UserCoursesFavourite
 	// if its already exits delete, else create
 	if err := r.db.Where("user_id = ? AND course_id = ?", userCourseFavourite.UserID, userCourseFavourite.CourseID).First(&ucf).Error; err != nil {
@@ -26,7 +31,7 @@ func (r *UserCoursesFavouriteRepository) AddOrRemoveToFavourite(userCourseFavour
 	return r.db.Where("user_id = ? AND course_id = ?", userCourseFavourite.UserID, userCourseFavourite.CourseID).Delete(&entity.UserCoursesFavourite{}).Error, "Remove from Favourite Executed"
 }
 
-func (r *UserCoursesFavouriteRepository) FindAllByUserID(userid uint) ([]entity.Course, error) {
+func (r *userCoursesFavouriteRepository) FindAllByUserID(userid uint) ([]entity.Course, error) {
 	var listRaw []entity.UserCoursesFavourite
 	if err := r.db.Where("user_id = ?", userid).Find(&listRaw).Error; err != nil {
 		return []entity.Course{}, err
