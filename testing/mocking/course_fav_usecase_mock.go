@@ -14,7 +14,7 @@ func (m *CourseFavouriteUsecaseMock) FindAllByUserID(user_id uint) ([]entity.Cou
 	panic("unimplemented")
 }
 
-func (m *CourseFavouriteUsecaseMock) AddOrRemoveToFavourite(userCourseFavourite entity.UserCoursesFavourite) (error, string) {
+func (m *CourseFavouriteUsecaseMock) AddOrRemoveToFavourite(userCourseFavourite entity.UserCoursesFavourite) (string, error) {
 	args := m.Called(userCourseFavourite)
-	return args.Error(0), args.String(1)
+	return args.String(0), args.Error(1)
 }
