@@ -32,7 +32,7 @@ func (s *CourseUsecaseTestSuite) TestGetAllCourse_Success() {
 
 func (s *CourseUsecaseTestSuite) TestGetCourseByID_Success() {
 	s.arm.On("FindByID", 1).Return(entity.Course{}, nil)
-	course, err := s.auc.GetCourseByID(dto.CourseIDDto{ID: 1}, "")
+	course, err := s.auc.GetCourseByID(1, "")
 	s.Nil(err)
 
 	s.arm.AssertExpectations(s.T())
@@ -56,7 +56,7 @@ func (s *CourseUsecaseTestSuite) TestUpdateCourse_Success() {
 		Description:     "Old Description",
 		Category:        "Old Category",
 		Video_URL:       "old_video_url",
-		Duration:        "10 hours",
+		Duration:        10,
 		Instructor_Name: "Old Instructor",
 		Rating:          4.5,
 	}
@@ -66,7 +66,7 @@ func (s *CourseUsecaseTestSuite) TestUpdateCourse_Success() {
 		Description:     "New Description",
 		Category:        "New Category",
 		Video_URL:       "new_video_url",
-		Duration:        "12 hours",
+		Duration:        12,
 		Instructor_Name: "New Instructor",
 		Rating:          4.8,
 	}
@@ -76,7 +76,7 @@ func (s *CourseUsecaseTestSuite) TestUpdateCourse_Success() {
 	s.arm.On("Update", updatedCourse).Return(nil)
 
 	// Call the UpdateCourse method
-	result, err := s.auc.UpdateCourse(dto.CourseIDDto{ID: 1}, updatedCourse, "")
+	result, err := s.auc.UpdateCourse(1, updatedCourse, "")
 
 	// Assert that there were no errors and that the result matches the updated course
 	s.Nil(err)
@@ -88,7 +88,7 @@ func (s *CourseUsecaseTestSuite) TestUpdateCourse_Success() {
 
 func (s *CourseUsecaseTestSuite) TestDeleteCourse_Success() {
 	s.arm.On("Delete", 1).Return(nil)
-	err := s.auc.DeleteCourse(dto.CourseIDDto{ID: 1}, "")
+	err := s.auc.DeleteCourse(1, "")
 	s.Nil(err)
 
 	s.arm.AssertExpectations(s.T())

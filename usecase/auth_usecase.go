@@ -89,32 +89,8 @@ func (u *authUsecase) Register(data *dto.RegisterDto) (*entity.User, error) {
 }
 
 // Login
-// func (u *authUsecase) Login(data *dto.LoginDto) (string, error) {
-// 	var tokenSecret config.Config
-// 	user, err := u.authRepo.FindByEmailAuth(data.Email)
-// 	if err != nil {
-// 		return "", err
-// 	}
-
-// 	if !config.CheckPasswordHash(data.Password, user.Password) {
-// 		return "", errors.New("invalid email or password")
-// 	}
-
-// 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-// 		"user_id": user.ID,
-// 		"exp":     time.Now().Add(time.Hour * 24).Unix(),
-// 	})
-
-// 	tokenString, err := token.SignedString(tokenSecret.TokenConfig.TokenSecret)
-// 	if err != nil {
-// 		return "", err
-// 	}
-
-// 	return tokenString, nil
-// }
-
 func (u *authUsecase) Login(data *dto.LoginDto) (string, error) {
-	var configConfig config.Config
+	var tokenSecret config.Config
 	user, err := u.authRepo.FindByEmailAuth(data.Email)
 	if err != nil {
 		return "", err
@@ -124,18 +100,42 @@ func (u *authUsecase) Login(data *dto.LoginDto) (string, error) {
 		return "", errors.New("invalid email or password")
 	}
 
-	token := jwt.NewWithClaims(configConfig.TokenConfig.SigningMethod, jwt.MapClaims{
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": user.ID,
-		"exp":     time.Now().Add(configConfig.TokenConfig.TokenExpire).Unix(),
+		"exp":     time.Now().Add(time.Hour * 24).Unix(),
 	})
 
-	tokenString, err := token.SignedString(configConfig.TokenConfig.TokenSecret)
+	tokenString, err := token.SignedString(tokenSecret.TokenConfig.TokenSecret)
 	if err != nil {
 		return "", err
 	}
 
 	return tokenString, nil
 }
+
+// func (u *authUsecase) Login(data *dto.LoginDto) (string, error) {
+// 	var configConfig config.Config
+// 	user, err := u.authRepo.FindByEmailAuth(data.Email)
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	if !config.CheckPasswordHash(data.Password, user.Password) {
+// 		return "", errors.New("invalid email or password")
+// 	}
+
+// 	token := jwt.NewWithClaims(configConfig.TokenConfig.SigningMethod, jwt.MapClaims{
+// 		"user_id": user.ID,
+// 		"exp":     time.Now().Add(configConfig.TokenConfig.TokenExpire).Unix(),
+// 	})
+
+// 	tokenString, err := token.SignedString(configConfig.TokenConfig.TokenSecret)
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	return tokenString, nil
+// }
 
 // Logout
 func (u *authUsecase) Logout() error {

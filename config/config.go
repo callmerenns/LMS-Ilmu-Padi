@@ -45,6 +45,12 @@ type ClientConfig struct {
 	ResetPasswordURL url.URL
 }
 
+// Initialize Struct Midtrans Config
+type MidtransConfig struct {
+	ClientKey string
+	ServerKey string
+}
+
 // Initialize Struct Config
 type Config struct {
 	DbConfig
@@ -52,6 +58,7 @@ type Config struct {
 	ApiConfig
 	SmtpConfig
 	ClientConfig
+	MidtransConfig
 	Env string
 }
 
@@ -86,6 +93,11 @@ func (c *Config) Configuration() error {
 	c.SmtpConfig = SmtpConfig{
 		EmailName:    os.Getenv("EMAIL_NAME"),
 		EmailAppPswd: os.Getenv("EMAIL_APP_PASSWORD"),
+	}
+
+	c.MidtransConfig = MidtransConfig{
+		ClientKey: os.Getenv("CLIENT_KEY"),
+		ServerKey: os.Getenv("SERVER_KEY"),
 	}
 
 	c.Env = os.Getenv("ENV")

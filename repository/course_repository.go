@@ -5,7 +5,6 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/kelompok-2/ilmu-padi/entity"
-	"github.com/kelompok-2/ilmu-padi/entity/dto"
 	"github.com/kelompok-2/ilmu-padi/shared/model"
 )
 
@@ -18,9 +17,9 @@ type courseRepository struct {
 type CourseRepository interface {
 	Create(course entity.Course) error
 	FindAll(page, size int) ([]entity.Course, model.Paging, error)
-	FindByID(id dto.CourseIDDto) (entity.Course, error)
+	FindByID(ID int) (entity.Course, error)
 	Update(course entity.Course) error
-	Delete(id dto.CourseIDDto) error
+	Delete(ID int) error
 }
 
 // Construction to Access Course Repository
@@ -60,7 +59,7 @@ func (c *courseRepository) FindAll(page, size int) ([]entity.Course, model.Pagin
 }
 
 // Find By ID
-func (c *courseRepository) FindByID(id dto.CourseIDDto) (entity.Course, error) {
+func (c *courseRepository) FindByID(id int) (entity.Course, error) {
 	var course entity.Course
 	if err := c.db.First(&course, id).Error; err != nil {
 		return course, err
@@ -74,6 +73,6 @@ func (c *courseRepository) Update(course entity.Course) error {
 }
 
 // Delete
-func (c *courseRepository) Delete(id dto.CourseIDDto) error {
+func (c *courseRepository) Delete(id int) error {
 	return c.db.Delete(&entity.Course{}, id).Error
 }

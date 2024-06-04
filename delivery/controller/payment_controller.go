@@ -6,10 +6,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/kelompok-2/ilmu-padi/config/routes"
 	"github.com/kelompok-2/ilmu-padi/delivery/middleware"
+	"github.com/kelompok-2/ilmu-padi/entity"
+	"github.com/kelompok-2/ilmu-padi/entity/dto"
 	"github.com/kelompok-2/ilmu-padi/shared/common"
 	"github.com/kelompok-2/ilmu-padi/usecase"
-	"github.com/midtrans/midtrans-go"
-	"github.com/midtrans/midtrans-go/snap"
 )
 
 // Initialize Struct Payment Controller
@@ -24,40 +24,74 @@ func NewPaymentController(paymentUsecase usecase.PaymentUsecase, rg *gin.RouterG
 	return &PaymentController{paymentUsecase: paymentUsecase, rg: rg, authMid: authMid}
 }
 
-// Create Payment
-func (pc *PaymentController) CreatePayment(c *gin.Context) {
-	var input struct {
-		OrderID     string `json:"order_id"`
-		GrossAmount int64  `json:"gross_amount"`
-		UserID      string `json:"user_id"`
-	}
+func (h *PaymentController) GetCampaignTransactions(c *gin.Context) {
+	var input dto.GetCourseTransactionsInput
 
-	if err := c.ShouldBindJSON(&input); err != nil {
+	err := c.ShouldBindUri(&input)
+	if err != nil {
 		common.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	snapReq := &snap.Request{
-		TransactionDetails: midtrans.TransactionDetails{
-			OrderID:  input.OrderID,
-			GrossAmt: input.GrossAmount,
-		},
-		CustomerDetail: &midtrans.CustomerDetails{
-			FName: input.UserID,
-			Email: "customer@example.com",
-		},
-	}
+	currentUser := c.MustGet("currentUser").(entity.User)
 
-	snapResp, err := pc.paymentUsecase.CreateSnapTransaction(snapReq)
+	input.User = currentUser
+
+	transactions, err := h.paymentUsecase.GetTransactionsByCourseID(input)
 	if err != nil {
-		common.SendErrorResponse(c, http.StatusInternalServerError, err.Error())
+		common.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	common.SendSingleResponse(c, snapResp.Token, "Success")
+	common.SendSuccessResponse(c, http.StatusOK, transactions)
+}
+
+func (h *PaymentController) CreateTransaction(c *gin.Context) {
+	var input dto.CreateTransactionInput
+
+	err := c.ShouldBindJSON(&input)
+
+	if err != nil {
+		common.SendErrorResponse(c, http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+
+	currentUser := c.MustGet("currentUser").(entity.User)
+
+	input.User = currentUser
+
+	newTransaction, err := h.paymentUsecase.CreateTransaction(input)
+
+	if err != nil {
+		common.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+
+		return
+	}
+
+	common.SendSuccessResponse(c, http.StatusOK, newTransaction)
+}
+
+func (h *PaymentController) GetNotification(c *gin.Context) {
+	var input dto.TransactionNotificationInput
+
+	err := c.ShouldBindJSON(&input)
+	if err != nil {
+		common.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err = h.paymentUsecase.ProcessPayment(input)
+	if err != nil {
+		common.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, input)
 }
 
 // Routing Payment
 func (pc *PaymentController) Route() {
-	pc.rg.POST(routes.PostPayment, pc.authMid.RequireToken("admin", "instructor", "user"), pc.CreatePayment)
+	pc.rg.GET(routes.GetCourseTransaction, pc.authMid.RequireToken("admin", "instructor", "user"), pc.CreateTransaction)
+	pc.rg.POST(routes.PostTransaction, pc.authMid.RequireToken("admin", "instructor", "user"), pc.CreateTransaction)
+	pc.rg.POST(routes.GetNotification, pc.authMid.RequireToken("admin", "instructor", "user"), pc.CreateTransaction)
 }

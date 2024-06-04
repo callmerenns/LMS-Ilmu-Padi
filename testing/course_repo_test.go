@@ -10,7 +10,6 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jinzhu/gorm"
 	"github.com/kelompok-2/ilmu-padi/entity"
-	"github.com/kelompok-2/ilmu-padi/entity/dto"
 	"github.com/kelompok-2/ilmu-padi/repository"
 	"github.com/kelompok-2/ilmu-padi/shared/model"
 	"github.com/stretchr/testify/assert"
@@ -29,7 +28,7 @@ var exampleCourse = entity.Course{
 	Description:     "Test",
 	Category:        "Test",
 	Video_URL:       "Test",
-	Duration:        "0",
+	Duration:        0,
 	Instructor_Name: "0",
 	Rating:          0,
 	UserId:          "0",
@@ -56,7 +55,7 @@ func (s *CourseRepositoryTestSuite) TestGetAll_Success() {
 			Description:     "Test",
 			Category:        "Test",
 			Video_URL:       "Test",
-			Duration:        "0",
+			Duration:        0,
 			Instructor_Name: "0",
 			Rating:          0,
 			UserId:          "0",
@@ -67,7 +66,7 @@ func (s *CourseRepositoryTestSuite) TestGetAll_Success() {
 			Description:     "Test",
 			Category:        "Test",
 			Video_URL:       "Test",
-			Duration:        "0",
+			Duration:        0,
 			Instructor_Name: "0",
 			Rating:          0,
 			UserId:          "0",
@@ -128,7 +127,7 @@ func (s *CourseRepositoryTestSuite) TestGetById_Success() {
 
 	s.mockSql.ExpectQuery(regexp.QuoteMeta(`select * from courses where id=$1`)).WithArgs(exampleCourse.ID).WillReturnRows(rows)
 
-	actualCourse, actualErr := s.repo.FindByID(dto.CourseIDDto{ID: exampleCourse.ID})
+	actualCourse, actualErr := s.repo.FindByID(int(exampleCourse.ID))
 
 	assert.Nil(s.T(), actualErr)
 	assert.NoError(s.T(), actualErr)
@@ -140,7 +139,7 @@ func (s *CourseRepositoryTestSuite) TestGetById_Failed() {
 
 	s.mockSql.ExpectQuery(regexp.QuoteMeta(`select * from courses where id=$1`)).WithArgs(exampleCourse.ID).WillReturnError(fmt.Errorf("something wrong"))
 
-	actualCourse, actualErr := s.repo.FindByID(dto.CourseIDDto{ID: exampleCourse.ID})
+	actualCourse, actualErr := s.repo.FindByID(int(exampleCourse.ID))
 
 	assert.Error(s.T(), actualErr)
 	assert.Equal(s.T(), exampleCourse.ID, actualCourse.ID)
@@ -175,7 +174,7 @@ func (s *CourseRepositoryTestSuite) TestDelete_Success() {
 
 	s.mockSql.ExpectCommit()
 
-	err := s.repo.Delete(dto.CourseIDDto{ID: exampleCourse.ID})
+	err := s.repo.Delete(int(exampleCourse.ID))
 	s.NoError(err)
 }
 
@@ -186,7 +185,7 @@ func (s *CourseRepositoryTestSuite) TestDelete_Failed() {
 
 	s.mockSql.ExpectCommit()
 
-	err := s.repo.Delete(dto.CourseIDDto{ID: exampleCourse.ID})
+	err := s.repo.Delete(int(exampleCourse.ID))
 	s.Error(err)
 }
 

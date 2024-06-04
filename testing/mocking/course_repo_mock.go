@@ -2,7 +2,6 @@ package mocking
 
 import (
 	"github.com/kelompok-2/ilmu-padi/entity"
-	"github.com/kelompok-2/ilmu-padi/entity/dto"
 	"github.com/kelompok-2/ilmu-padi/shared/model"
 	"github.com/stretchr/testify/mock"
 )
@@ -16,7 +15,7 @@ func (m *CourseRepoMock) FindAll(page, size int) ([]entity.Course, model.Paging,
 	return args.Get(0).([]entity.Course), args.Get(1).(model.Paging), args.Error(2)
 }
 
-func (m *CourseRepoMock) FindByID(id dto.CourseIDDto) (entity.Course, error) {
+func (m *CourseRepoMock) FindByID(id int) (entity.Course, error) {
 	args := m.Called(id)
 	return args.Get(0).(entity.Course), args.Error(1)
 }
@@ -31,7 +30,7 @@ func (m *CourseRepoMock) Update(course entity.Course) error {
 	return args.Error(0)
 }
 
-func (m *CourseRepoMock) Delete(id dto.CourseIDDto) error {
+func (m *CourseRepoMock) Delete(id int) error {
 	args := m.Called(id)
 	return args.Error(0)
 }

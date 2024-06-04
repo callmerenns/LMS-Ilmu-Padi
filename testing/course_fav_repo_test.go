@@ -93,7 +93,7 @@ func (s *CourseFavouriteRepoTestSuite) TestFindAllByUserID() {
 			UserId:          "1",
 			Category:        "category",
 			Video_URL:       "video_url",
-			Duration:        "duration",
+			Duration:        0,
 			Instructor_Name: "instructor_name",
 			Rating:          1,
 		},
@@ -104,7 +104,7 @@ func (s *CourseFavouriteRepoTestSuite) TestFindAllByUserID() {
 			UserId:          "1",
 			Category:        "category",
 			Video_URL:       "video_url",
-			Duration:        "duration",
+			Duration:        0,
 			Instructor_Name: "instructor_name",
 			Rating:          1,
 		}}

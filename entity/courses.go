@@ -13,10 +13,13 @@ type Course struct {
 	Description     string  `json:"description"`
 	Category        string  `json:"category"`
 	Video_URL       string  `json:"video_url"`
-	Duration        string  `json:"duration"`
+	Duration        int     `json:"duration"`
 	Instructor_Name string  `json:"name_instructor"`
 	Rating          float32 `json:"rating"`
 	UserId          string  `json:"userId,omitempty"`
+	BackerCount     int
+	GoalAmount      int
+	CurrentAmount   int
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 	DeletedAt       gorm.DeletedAt `gorm:"index"`

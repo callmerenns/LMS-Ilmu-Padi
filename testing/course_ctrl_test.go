@@ -112,7 +112,7 @@ func (s *CourseControllerTestSuite) TestCreateCourse_Success() {
 		Description:     "Test",
 		Category:        "Test",
 		Video_URL:       "Test",
-		Duration:        "0",
+		Duration:        0,
 		Instructor_Name: "0",
 		Rating:          0,
 		UserId:          "0",
