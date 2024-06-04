@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"log"
 	"math"
 
 	"github.com/jinzhu/gorm"
@@ -26,27 +25,16 @@ type CourseRepository interface {
 
 // Construction to Access Course Repository
 func NewCourseRepository(db *gorm.DB) CourseRepository {
-	if db == nil {
-		log.Fatal("Database connection is nil CourseRepository")
-	}
 	return &courseRepository{db: db}
 }
 
 // Create
 func (c *courseRepository) Create(course entity.Course) error {
-	if c.db == nil {
-		log.Fatal("Database connection is nil in Create")
-	}
-
 	return c.db.Create(&course).Error
 }
 
 // Find All
 func (c *courseRepository) FindAll(page, size int) ([]entity.Course, model.Paging, error) {
-	if c.db == nil {
-		log.Fatal("Database connection is nil in FindAll")
-	}
-
 	var courses []entity.Course
 	offset := (page - 1) * size
 
@@ -73,10 +61,6 @@ func (c *courseRepository) FindAll(page, size int) ([]entity.Course, model.Pagin
 
 // Find By ID
 func (c *courseRepository) FindByID(id dto.CourseIDDto) (entity.Course, error) {
-	if c.db == nil {
-		log.Fatal("Database connection is nil in FindByID")
-	}
-
 	var course entity.Course
 	if err := c.db.First(&course, id).Error; err != nil {
 		return course, err
@@ -86,18 +70,10 @@ func (c *courseRepository) FindByID(id dto.CourseIDDto) (entity.Course, error) {
 
 // Update
 func (c *courseRepository) Update(course entity.Course) error {
-	if c.db == nil {
-		log.Fatal("Database connection is nil in Update")
-	}
-
 	return c.db.Save(&course).Error
 }
 
 // Delete
 func (c *courseRepository) Delete(id dto.CourseIDDto) error {
-	if c.db == nil {
-		log.Fatal("Database connection is nil in Delete")
-	}
-
 	return c.db.Delete(&entity.Course{}, id).Error
 }
