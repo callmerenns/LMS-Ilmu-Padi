@@ -61,6 +61,6 @@ func (u *UserCoursesFavouriteController) GetUserFavouriteList(c *gin.Context) {
 
 // Routing User Course Favorite
 func (u *UserCoursesFavouriteController) Route() {
-	u.rg.GET(routes.GetUserCourseFavouriteList, u.authMid.RequireToken("admin", "user"), u.GetUserFavouriteList)
-	u.rg.POST(routes.PostUserCourseFavourite, u.authMid.RequireToken("admin", "user"), u.AddOrRemoveCourseFavourite)
+	u.rg.GET(routes.GetUserCourseFavouriteList, u.authMid.RequireToken("admin", "user", "instructor"), u.GetUserFavouriteList)
+	u.rg.POST(routes.PostUserCourseFavourite, u.authMid.RequireToken("admin", "user", "instructor"), u.AddOrRemoveCourseFavourite)
 }
