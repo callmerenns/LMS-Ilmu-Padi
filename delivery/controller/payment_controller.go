@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/kelompok-2/ilmu-padi/config/routes"
 	"github.com/kelompok-2/ilmu-padi/delivery/middleware"
-	"github.com/kelompok-2/ilmu-padi/entity"
 	"github.com/kelompok-2/ilmu-padi/entity/dto"
 	"github.com/kelompok-2/ilmu-padi/shared/common"
 	"github.com/kelompok-2/ilmu-padi/usecase"
@@ -25,19 +24,24 @@ func NewPaymentController(paymentUsecase usecase.PaymentUsecase, rg *gin.RouterG
 }
 
 func (h *PaymentController) GetCampaignTransactions(c *gin.Context) {
-	var input dto.GetCourseTransactionsInput
+	var payload dto.GetCourseTransactionsInput
 
-	err := c.ShouldBindUri(&input)
+	err := c.ShouldBindUri(&payload)
 	if err != nil {
 		common.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	currentUser := c.MustGet("currentUser").(entity.User)
+	user := c.MustGet("user").(string)
 
-	input.User = currentUser
+	payload.UserId = user
 
-	transactions, err := h.paymentUsecase.GetTransactionsByCourseID(input)
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		common.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	transactions, err := h.paymentUsecase.GetTransactionsByCourseID(payload, user)
 	if err != nil {
 		common.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
@@ -47,24 +51,34 @@ func (h *PaymentController) GetCampaignTransactions(c *gin.Context) {
 }
 
 func (h *PaymentController) CreateTransaction(c *gin.Context) {
-	var input dto.CreateTransactionInput
+	var payload dto.CreateTransactionInput
 
-	err := c.ShouldBindJSON(&input)
-
-	if err != nil {
-		common.SendErrorResponse(c, http.StatusUnprocessableEntity, err.Error())
+	// Coba bind JSON dari body request
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		common.SendErrorResponse(c, http.StatusBadRequest, "Invalid JSON format: "+err.Error())
 		return
 	}
 
-	currentUser := c.MustGet("currentUser").(entity.User)
+	// Ambil user dari context
+	user, exists := c.Get("user")
+	if !exists {
+		common.SendErrorResponse(c, http.StatusUnauthorized, "User not found in context")
+		return
+	}
 
-	input.User = currentUser
+	// Pastikan user adalah string
+	userStr, ok := user.(string)
+	if !ok {
+		common.SendErrorResponse(c, http.StatusUnauthorized, "Invalid user format")
+		return
+	}
 
-	newTransaction, err := h.paymentUsecase.CreateTransaction(input)
+	payload.UserId = userStr
 
+	// Panggil usecase untuk membuat transaksi baru
+	newTransaction, err := h.paymentUsecase.CreateTransaction(payload, userStr)
 	if err != nil {
 		common.SendErrorResponse(c, http.StatusBadRequest, err.Error())
-
 		return
 	}
 
@@ -72,21 +86,30 @@ func (h *PaymentController) CreateTransaction(c *gin.Context) {
 }
 
 func (h *PaymentController) GetNotification(c *gin.Context) {
-	var input dto.TransactionNotificationInput
+	var payload dto.TransactionNotificationInput
 
-	err := c.ShouldBindJSON(&input)
+	err := c.ShouldBindJSON(&payload)
 	if err != nil {
 		common.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	err = h.paymentUsecase.ProcessPayment(input)
+	user := c.MustGet("user").(string)
+
+	payload.UserId = user
+
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		common.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err = h.paymentUsecase.ProcessPayment(payload, user)
 	if err != nil {
 		common.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, input)
+	common.SendSuccessResponse(c, http.StatusOK, payload)
 }
 
 // Routing Payment

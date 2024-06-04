@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -34,6 +35,7 @@ func (a *authMiddleware) RequireToken(roles ...string) gin.HandlerFunc {
 			// Log when checking the cookie
 			log.Println("RequireToken: Checking cookie for token")
 			cookie, err := ctx.Cookie("token")
+			fmt.Println("Token : ", cookie)
 			if err != nil {
 				log.Println("RequireToken: Error retrieving token from cookie:", err)
 				ctx.AbortWithStatus(http.StatusUnauthorized)

@@ -8,13 +8,13 @@ import (
 
 // Initialize Struct Course
 type Course struct {
-	ID              uint    `gorm:"primaryKey;autoIncrement" json:"id"`
+	ID              int     `gorm:"primaryKey;autoIncrement" json:"id"`
 	Title           string  `json:"title"`
 	Description     string  `json:"description"`
 	Category        string  `json:"category"`
 	Video_URL       string  `json:"video_url"`
 	Duration        int     `json:"duration"`
-	Instructor_Name string  `json:"name_instructor"`
+	Instructor_Name string  `json:"instructor_name"`
 	Rating          float32 `json:"rating"`
 	UserId          string  `json:"userId,omitempty"`
 	BackerCount     int

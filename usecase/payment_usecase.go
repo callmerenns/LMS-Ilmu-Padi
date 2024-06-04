@@ -10,24 +10,28 @@ import (
 	"github.com/kelompok-2/ilmu-padi/shared/service"
 )
 
+// Initialize Struct User Payment Usecase
 type paymentUsecase struct {
 	repository       repository.PaymentRepository
 	courseRepository repository.CourseRepository
 	paymentService   service.Service
 }
 
+// Initialize Interface User Course Sender Usecase
 type PaymentUsecase interface {
-	GetTransactionsByCourseID(input dto.GetCourseTransactionsInput) ([]entity.Transaction, error)
-	CreateTransaction(input dto.CreateTransactionInput) (entity.Transaction, error)
-	ProcessPayment(input dto.TransactionNotificationInput) error
-	GetAllTransactions() ([]entity.Transaction, error)
+	GetTransactionsByCourseID(input dto.GetCourseTransactionsInput, user string) ([]entity.Transaction, error)
+	CreateTransaction(input dto.CreateTransactionInput, user string) (entity.Transaction, error)
+	ProcessPayment(input dto.TransactionNotificationInput, user string) error
+	GetAllTransactions(user string) ([]entity.Transaction, error)
 }
 
+// Construction to Access Payment Courses Usecase
 func NewPaymentUsecase(repository repository.PaymentRepository, courseRepository repository.CourseRepository, paymentService service.Service) *paymentUsecase {
 	return &paymentUsecase{repository, courseRepository, paymentService}
 }
 
-func (s *paymentUsecase) GetTransactionsByCourseID(payload dto.GetCourseTransactionsInput) ([]entity.Transaction, error) {
+// Get Transactions By Course ID
+func (s *paymentUsecase) GetTransactionsByCourseID(payload dto.GetCourseTransactionsInput, user string) ([]entity.Transaction, error) {
 	course, err := s.courseRepository.FindByID(payload.ID)
 	if err != nil {
 		return []entity.Transaction{}, err
@@ -45,7 +49,8 @@ func (s *paymentUsecase) GetTransactionsByCourseID(payload dto.GetCourseTransact
 	return transactions, nil
 }
 
-func (s *paymentUsecase) CreateTransaction(payload dto.CreateTransactionInput) (entity.Transaction, error) {
+// Create Transaction
+func (s *paymentUsecase) CreateTransaction(payload dto.CreateTransactionInput, user string) (entity.Transaction, error) {
 	transaction := entity.Transaction{}
 	transaction.Course_ID = payload.CourseID
 	transaction.Amount = payload.Amount
@@ -77,7 +82,8 @@ func (s *paymentUsecase) CreateTransaction(payload dto.CreateTransactionInput) (
 	return newTransaction, nil
 }
 
-func (s *paymentUsecase) ProcessPayment(input dto.TransactionNotificationInput) error {
+// Process Payment
+func (s *paymentUsecase) ProcessPayment(input dto.TransactionNotificationInput, user string) error {
 	transaction_id, _ := strconv.Atoi(input.OrderID)
 
 	transaction, err := s.repository.GetByID(transaction_id)
@@ -116,7 +122,8 @@ func (s *paymentUsecase) ProcessPayment(input dto.TransactionNotificationInput) 
 	return nil
 }
 
-func (s *paymentUsecase) GetAllTransactions() ([]entity.Transaction, error) {
+// Get All Transactions
+func (s *paymentUsecase) GetAllTransactions(user string) ([]entity.Transaction, error) {
 	transactions, err := s.repository.FindAll()
 	if err != nil {
 		return transactions, err

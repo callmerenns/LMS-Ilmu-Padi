@@ -37,10 +37,10 @@ func (c *courseUsecase) CreateCourse(courses entity.Course, user string) (entity
 		return entity.Course{}, err
 	}
 
-	// Validate the input course data
-	if courses.Title == "" || courses.Description == "" || courses.Category == "" || courses.Video_URL == "" || courses.Duration <= 0 || courses.Instructor_Name == "" || courses.Rating < 0 {
-		return entity.Course{}, errors.New("invalid course data")
-	}
+	// // Validate the input course data
+	// if courses.Title == "" || courses.Description == "" || courses.Category == "" || courses.Video_URL == "" || courses.Duration <= 0 || courses.Instructor_Name == "" || courses.Rating < 0 {
+	// 	return entity.Course{}, errors.New("invalid course data")
+	// }
 
 	return course, nil
 }

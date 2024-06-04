@@ -32,11 +32,18 @@ func (s *service) GetPaymentURL(transaction Transaction, user entity.User) (stri
 	)
 
 	ClientKey = os.Getenv("CLIENT_KEY")
+	fmt.Println("Client Key : ", ClientKey)
+
 	ServerKey = os.Getenv("SERVER_KEY")
+	fmt.Println("Server Key : ", ServerKey)
+
+	if ClientKey == "" || ServerKey == "" {
+		return "", fmt.Errorf("client key or server key is not set")
+	}
 
 	midclient := midtrans.NewClient()
-	midclient.ServerKey = ClientKey
-	midclient.ClientKey = ServerKey
+	midclient.ServerKey = ServerKey
+	midclient.ClientKey = ClientKey
 	midclient.APIEnvType = midtrans.Sandbox
 
 	snapGateway := midtrans.SnapGateway{
@@ -56,7 +63,7 @@ func (s *service) GetPaymentURL(transaction Transaction, user entity.User) (stri
 
 	snapTokenResp, err := snapGateway.GetToken(snapReq)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error getting snap token: %v", err)
 	}
 
 	return snapTokenResp.RedirectURL, nil
