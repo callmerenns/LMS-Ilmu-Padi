@@ -1,4 +1,4 @@
-package testing
+package repository
 
 import (
 	"database/sql"
@@ -9,7 +9,6 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jinzhu/gorm"
 	"github.com/kelompok-2/ilmu-padi/entity"
-	"github.com/kelompok-2/ilmu-padi/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -18,7 +17,7 @@ type CourseFavouriteRepoTestSuite struct {
 	suite.Suite
 	mockDb  *sql.DB
 	mockSql sqlmock.Sqlmock
-	repo    repository.UserCoursesFavouriteRepository
+	repo    UserCoursesFavouriteRepository
 }
 
 var payload = entity.UserCoursesFavourite{
@@ -137,7 +136,7 @@ func (s *CourseFavouriteRepoTestSuite) SetupTest() {
 		panic(err)
 	}
 
-	s.repo = repository.NewUserCoursesFavouriteRepository(gormDb)
+	s.repo = NewUserCoursesFavouriteRepository(gormDb)
 }
 
 func TestCourseFavouriteRepoTestSuite(t *testing.T) {

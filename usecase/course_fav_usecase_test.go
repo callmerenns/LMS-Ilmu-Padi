@@ -1,22 +1,28 @@
-package testing
+package usecase
 
 import (
 	"testing"
 
+	"github.com/kelompok-2/ilmu-padi/entity"
 	"github.com/kelompok-2/ilmu-padi/testing/mocking"
-	"github.com/kelompok-2/ilmu-padi/usecase"
 	"github.com/stretchr/testify/suite"
 )
+
+var payload = entity.UserCoursesFavourite{
+	ID:       1,
+	UserID:   "1",
+	CourseID: "1",
+}
 
 type CourseFavouriteUseCaseTestSuite struct {
 	suite.Suite
 	arm *mocking.CourseFavouriteRepoMock
-	auc usecase.UserCoursesFavouriteUsecase
+	auc UserCoursesFavouriteUsecase
 }
 
 func (s *CourseFavouriteUseCaseTestSuite) SetupTest() {
 	s.arm = new(mocking.CourseFavouriteRepoMock)
-	s.auc = usecase.NewUserCoursesFavouriteUsecase(s.arm)
+	s.auc = NewUserCoursesFavouriteUsecase(s.arm)
 }
 
 func TestCourseFavouriteUseCaseTestSuite(t *testing.T) {

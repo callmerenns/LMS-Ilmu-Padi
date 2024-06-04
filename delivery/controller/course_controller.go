@@ -143,11 +143,6 @@ func (crs *CourseController) DeleteCourse(c *gin.Context) {
 	}
 
 	user := c.MustGet("user").(string)
-	if err := c.ShouldBindUri(&courseId); err != nil {
-		common.SendErrorResponse(c, http.StatusBadRequest, err.Error())
-		return
-	}
-
 	if err := crs.courseUsecase.DeleteCourse(courseId, user); err != nil {
 		common.SendErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
