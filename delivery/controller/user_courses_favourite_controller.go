@@ -44,7 +44,7 @@ func (u *UserCoursesFavouriteController) AddOrRemoveCourseFavourite(c *gin.Conte
 }
 
 func (u *UserCoursesFavouriteController) GetUserFavouriteList(c *gin.Context) {
-	userID, err := strconv.ParseUint(c.Param("user_id"), 10, 32)
+	userID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		common.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return

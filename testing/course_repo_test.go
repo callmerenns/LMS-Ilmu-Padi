@@ -104,7 +104,7 @@ func (s *CourseRepositoryTestSuite) TestCreate_Success() {
 
 	s.mockSql.ExpectCommit()
 
-	err := s.repo.Create(exampleCourse)
+	err := s.repo.Create(&exampleCourse)
 	s.NoError(err)
 }
 
@@ -117,7 +117,7 @@ func (s *CourseRepositoryTestSuite) TestCreate_Failed() {
 
 	s.mockSql.ExpectCommit()
 
-	err := s.repo.Create(exampleCourse)
+	err := s.repo.Create(&exampleCourse)
 	s.Error(err)
 }
 

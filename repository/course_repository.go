@@ -15,8 +15,9 @@ type courseRepository struct {
 
 // Initialize Interface Course Sender Repository
 type CourseRepository interface {
-	Create(course entity.Course) error
+	Create(course *entity.Course) error
 	FindAll(page, size int) ([]entity.Course, model.Paging, error)
+	FindAllByCategory(category string, page, size int) ([]entity.Course, model.Paging, error)
 	FindByID(ID int) (entity.Course, error)
 	Update(course entity.Course) error
 	Delete(ID int) error
@@ -28,7 +29,7 @@ func NewCourseRepository(db *gorm.DB) CourseRepository {
 }
 
 // Create
-func (c *courseRepository) Create(course entity.Course) error {
+func (c *courseRepository) Create(course *entity.Course) error {
 	return c.db.Create(&course).Error
 }
 
@@ -45,6 +46,31 @@ func (c *courseRepository) FindAll(page, size int) ([]entity.Course, model.Pagin
 
 	// Retrieve data with limits and offsets for pagination
 	if err := c.db.Limit(size).Offset(offset).Find(&courses).Error; err != nil {
+		return nil, model.Paging{}, err
+	}
+
+	// Set up paging information
+	paging := model.Paging{
+		Page:        page,
+		RowsPerPage: size,
+		TotalRows:   totalRows,
+		TotalPages:  int(math.Ceil(float64(totalRows) / float64(size))),
+	}
+	return courses, paging, nil
+}
+
+func (c *courseRepository) FindAllByCategory(category string, page, size int) ([]entity.Course, model.Paging, error) {
+	var courses []entity.Course
+	offset := (page - 1) * size
+
+	// Calculate the row total first
+	var totalRows int
+	if err := c.db.Model(&entity.Course{}).Count(&totalRows).Error; err != nil {
+		return nil, model.Paging{}, err
+	}
+
+	// Retrieve data with limits and offsets for pagination
+	if err := c.db.Limit(size).Offset(offset).Where("category = ?", category).Find(&courses).Error; err != nil {
 		return nil, model.Paging{}, err
 	}
 
