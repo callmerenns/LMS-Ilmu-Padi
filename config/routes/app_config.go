@@ -17,7 +17,7 @@ const (
 
 	// Route User Course Favourite
 	PostUserCourseFavourite    = "/course/favourite"
-	GetUserCourseFavouriteList = "/course/favourite/:user_id"
+	GetUserCourseFavouriteList = "/course/favourite/:id"
 
 	// Route Authentitacion
 	Register       = "/auth/register"

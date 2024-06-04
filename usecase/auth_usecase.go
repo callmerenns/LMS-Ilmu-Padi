@@ -95,6 +95,10 @@ func (u *authUsecase) Login(data *dto.LoginDto) (string, error) {
 		return "", err
 	}
 
+	if !user.Verified {
+		return "", errors.New("user not verified")
+	}
+
 	if !config.CheckPasswordHash(data.Password, user.Password) {
 		return "", errors.New("invalid email or password")
 	}

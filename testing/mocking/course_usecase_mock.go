@@ -16,6 +16,11 @@ func (m *CourseUsecaseMock) CreateCourse(courses entity.Course, user string) (en
 	return args.Get(0).(entity.Course), args.Error(1)
 }
 
+func (m *CourseUsecaseMock) GetAllCoursesByCategory(category string, page int, size int, user string) ([]entity.Course, model.Paging, error) {
+	args := m.Called(category, page, size, user)
+	return args.Get(0).([]entity.Course), args.Get(1).(model.Paging), args.Error(2)
+}
+
 // DeleteCourse implements usecase.CourseUsecase.
 func (m *CourseUsecaseMock) DeleteCourse(id int, user string) error {
 	args := m.Called(id, user)

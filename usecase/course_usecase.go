@@ -1,7 +1,6 @@
 package usecase
 
 import (
-	"errors"
 	"log"
 
 	"github.com/kelompok-2/ilmu-padi/entity"
@@ -18,6 +17,7 @@ type courseUsecase struct {
 type CourseUsecase interface {
 	CreateCourse(courses entity.Course, user string) (entity.Course, error)
 	GetAllCourses(page, size int, user string) ([]entity.Course, model.Paging, error)
+	GetAllCoursesByCategory(category string, page, size int, user string) ([]entity.Course, model.Paging, error)
 	GetCourseByID(ID int, user string) (entity.Course, error)
 	UpdateCourse(ID int, courses entity.Course, user string) (entity.Course, error)
 	DeleteCourse(ID int, user string) error
@@ -33,14 +33,9 @@ func NewCourseUsecase(courseRepository repository.CourseRepository) CourseUsecas
 // Create Course
 func (c *courseUsecase) CreateCourse(courses entity.Course, user string) (entity.Course, error) {
 	course := entity.Course{Title: courses.Title, Description: courses.Description, Category: courses.Category, Video_URL: courses.Video_URL, Duration: courses.Duration, Instructor_Name: courses.Instructor_Name, Rating: courses.Rating}
-	if err := c.courseRepository.Create(course); err != nil {
+	if err := c.courseRepository.Create(&course); err != nil {
 		return entity.Course{}, err
 	}
-
-	// // Validate the input course data
-	// if courses.Title == "" || courses.Description == "" || courses.Category == "" || courses.Video_URL == "" || courses.Duration <= 0 || courses.Instructor_Name == "" || courses.Rating < 0 {
-	// 	return entity.Course{}, errors.New("invalid course data")
-	// }
 
 	return course, nil
 }
@@ -48,6 +43,10 @@ func (c *courseUsecase) CreateCourse(courses entity.Course, user string) (entity
 // Get All Courses
 func (c *courseUsecase) GetAllCourses(page, size int, user string) ([]entity.Course, model.Paging, error) {
 	return c.courseRepository.FindAll(page, size)
+}
+
+func (c *courseUsecase) GetAllCoursesByCategory(category string, page, size int, user string) ([]entity.Course, model.Paging, error) {
+	return c.courseRepository.FindAllByCategory(category, page, size)
 }
 
 // Get Course By ID
@@ -66,10 +65,10 @@ func (c *courseUsecase) UpdateCourse(ID int, courses entity.Course, user string)
 		return entity.Course{}, err
 	}
 
-	// Validate the input course data
-	if courses.Title == "" || courses.Description == "" || courses.Category == "" || courses.Video_URL == "" || courses.Duration <= 0 || courses.Instructor_Name == "" || courses.Rating < 0 {
-		return entity.Course{}, errors.New("invalid course data")
-	}
+	// // Validate the input course data
+	// if courses.Title == "" || courses.Description == "" || courses.Category == "" || courses.Video_URL == "" || courses.Duration <= 0 || courses.Instructor_Name == "" || courses.Rating < 0 {
+	// 	return entity.Course{}, errors.New("invalid course data")
+	// }
 
 	// Update the course fields
 	course.Title = courses.Title

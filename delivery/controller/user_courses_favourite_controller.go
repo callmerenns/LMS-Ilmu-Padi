@@ -44,7 +44,7 @@ func (u *UserCoursesFavouriteController) AddOrRemoveCourseFavourite(c *gin.Conte
 }
 
 func (u *UserCoursesFavouriteController) GetUserFavouriteList(c *gin.Context) {
-	userID, err := strconv.ParseUint(c.Param("user_id"), 10, 32)
+	userID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		common.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
@@ -61,6 +61,6 @@ func (u *UserCoursesFavouriteController) GetUserFavouriteList(c *gin.Context) {
 
 // Routing User Course Favorite
 func (u *UserCoursesFavouriteController) Route() {
-	u.rg.GET(routes.GetUserCourseFavouriteList, u.authMid.RequireToken("admin", "user"), u.GetUserFavouriteList)
-	u.rg.POST(routes.PostUserCourseFavourite, u.authMid.RequireToken("admin", "user"), u.AddOrRemoveCourseFavourite)
+	u.rg.GET(routes.GetUserCourseFavouriteList, u.authMid.RequireToken("admin", "user", "instructor"), u.GetUserFavouriteList)
+	u.rg.POST(routes.PostUserCourseFavourite, u.authMid.RequireToken("admin", "user", "instructor"), u.AddOrRemoveCourseFavourite)
 }
