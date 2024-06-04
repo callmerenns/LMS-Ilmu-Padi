@@ -34,5 +34,7 @@ const (
 	GetProfileByCourseName         = "/profile/:course"
 
 	// Route Payment
-	PostPayment = "/transaction/payment"
+	GetCourseTransaction = "/courses/:id/transaction"
+	PostTransaction      = "/transaction/payment"
+	GetNotification      = "/transaction/notification"
 )

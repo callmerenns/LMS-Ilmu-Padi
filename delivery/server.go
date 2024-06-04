@@ -14,7 +14,6 @@ import (
 	"github.com/kelompok-2/ilmu-padi/repository"
 	"github.com/kelompok-2/ilmu-padi/shared/service"
 	"github.com/kelompok-2/ilmu-padi/usecase"
-	"github.com/midtrans/midtrans-go/snap"
 )
 
 type Server struct {
@@ -55,11 +54,11 @@ func NewServer() *Server {
 		panic("failed to connect to database")
 	}
 
-	db.AutoMigrate(&entity.User{}, &entity.Course{}, &entity.Subscription{}, &entity.UserCoursesFavourite{}, &entity.Payment{})
+	db.AutoMigrate(&entity.User{}, &entity.Course{}, &entity.Subscription{}, &entity.UserCoursesFavourite{}, &entity.Transaction{})
 
 	jwtService := service.NewJwtService(cfg.TokenConfig)
 	mailService := service.NewMailService(cfg.SmtpConfig)
-	snapClientService := snap.Client{}
+	paymentService := service.NewService()
 
 	// Setup Configuration Layer Repo
 	authRepo := repository.NewAuthRepository(db)
@@ -74,7 +73,7 @@ func NewServer() *Server {
 	userUsecase := usecase.NewUserUsecase(userRepo)
 	courseUsecase := usecase.NewCourseUsecase(courseRepo)
 	userCourseFavotiteUsecase := usecase.NewUserCoursesFavouriteUsecase(userCourseFavoriteRepo)
-	paymentUsecase := usecase.NewPaymentUsecase(snapClientService, paymentRepo)
+	paymentUsecase := usecase.NewPaymentUsecase(paymentRepo, courseRepo, paymentService)
 
 	engine := gin.Default()
 	host := fmt.Sprintf(":%s", cfg.ApiPort)

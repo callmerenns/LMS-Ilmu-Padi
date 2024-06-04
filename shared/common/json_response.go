@@ -50,7 +50,7 @@ func SendErrorResponse(ctx *gin.Context, code int, message string) {
 }
 
 // Common Response Send Success Response
-func SendSuccessResponse(ctx *gin.Context, code int, message string) {
+func SendSuccessResponse(ctx *gin.Context, code int, message any) {
 	ctx.AbortWithStatusJSON(code, &model.Status{
 		Code:    code,
 		Message: message,

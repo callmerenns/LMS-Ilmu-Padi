@@ -6,7 +6,6 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/kelompok-2/ilmu-padi/entity"
-	"github.com/kelompok-2/ilmu-padi/entity/dto"
 	"github.com/kelompok-2/ilmu-padi/shared/model"
 )
 
@@ -19,9 +18,9 @@ type courseRepository struct {
 type CourseRepository interface {
 	Create(course entity.Course) error
 	FindAll(page, size int) ([]entity.Course, model.Paging, error)
-	FindByID(id dto.CourseIDDto) (entity.Course, error)
-	Update(course entity.Course) error
-	Delete(id dto.CourseIDDto) error
+	FindByID(ID int) (entity.Course, error)
+	Update(course entity.Course) (entity.Course, error)
+	Delete(ID int) error
 }
 
 // Construction to Access Course Repository
@@ -72,32 +71,36 @@ func (c *courseRepository) FindAll(page, size int) ([]entity.Course, model.Pagin
 }
 
 // Find By ID
-func (c *courseRepository) FindByID(id dto.CourseIDDto) (entity.Course, error) {
+func (c *courseRepository) FindByID(ID int) (entity.Course, error) {
 	if c.db == nil {
 		log.Fatal("Database connection is nil in FindByID")
 	}
 
 	var course entity.Course
-	if err := c.db.First(&course, id).Error; err != nil {
+	if err := c.db.First(&course, ID).Error; err != nil {
 		return course, err
 	}
 	return course, nil
 }
 
 // Update
-func (c *courseRepository) Update(course entity.Course) error {
+func (c *courseRepository) Update(course entity.Course) (entity.Course, error) {
 	if c.db == nil {
 		log.Fatal("Database connection is nil in Update")
 	}
 
-	return c.db.Save(&course).Error
+	if err := c.db.Save(&course).Error; err != nil {
+		return course, err
+	}
+
+	return course, nil
 }
 
 // Delete
-func (c *courseRepository) Delete(id dto.CourseIDDto) error {
+func (c *courseRepository) Delete(ID int) error {
 	if c.db == nil {
 		log.Fatal("Database connection is nil in Delete")
 	}
 
-	return c.db.Delete(&entity.Course{}, id).Error
+	return c.db.Delete(&entity.Course{}, ID).Error
 }

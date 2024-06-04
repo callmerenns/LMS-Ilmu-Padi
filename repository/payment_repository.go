@@ -1,8 +1,6 @@
 package repository
 
 import (
-	"log"
-
 	"github.com/jinzhu/gorm"
 	"github.com/kelompok-2/ilmu-padi/entity"
 )
@@ -14,7 +12,11 @@ type paymentRepository struct {
 
 // Initialize Interface Payment Sender Repository
 type PaymentRepository interface {
-	SavePayment(payment entity.Payment) error
+	GetByCourseID(courseID int) ([]entity.Transaction, error)
+	GetByID(ID int) (entity.Transaction, error)
+	Save(transaction entity.Transaction) (entity.Transaction, error)
+	Update(transaction entity.Transaction) (entity.Transaction, error)
+	FindAll() ([]entity.Transaction, error)
 }
 
 // Construction to Access Payment Repository
@@ -23,10 +25,56 @@ func NewPaymentRepository(db *gorm.DB) PaymentRepository {
 }
 
 // Save Payment
-func (p *paymentRepository) SavePayment(payment entity.Payment) error {
-	if p.db == nil {
-		log.Fatal("Database connection is nil in SavePayment")
+func (r *paymentRepository) GetByCourseID(courseID int) ([]entity.Transaction, error) {
+	var transactions []entity.Transaction
+
+	err := r.db.Preload("User").Where("course_id = ?", courseID).Order("id desc").Find(&transactions).Error
+	if err != nil {
+		return transactions, err
 	}
 
-	return p.db.Create(&payment).Error
+	return transactions, nil
+}
+
+func (r *paymentRepository) GetByID(ID int) (entity.Transaction, error) {
+	var transaction entity.Transaction
+
+	err := r.db.Where("id = ?", ID).Find(&transaction).Error
+
+	if err != nil {
+		return transaction, err
+	}
+
+	return transaction, nil
+}
+
+func (r *paymentRepository) Save(transaction entity.Transaction) (entity.Transaction, error) {
+	err := r.db.Create(&transaction).Error
+
+	if err != nil {
+		return transaction, err
+	}
+
+	return transaction, nil
+}
+
+func (r *paymentRepository) Update(transaction entity.Transaction) (entity.Transaction, error) {
+	err := r.db.Save(&transaction).Error
+
+	if err != nil {
+		return transaction, err
+	}
+
+	return transaction, nil
+}
+
+func (r *paymentRepository) FindAll() ([]entity.Transaction, error) {
+	var transactions []entity.Transaction
+
+	err := r.db.Preload("Campaign").Order("id desc").Find(&transactions).Error
+	if err != nil {
+		return transactions, err
+	}
+
+	return transactions, nil
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/kelompok-2/ilmu-padi/config/routes"
 	"github.com/kelompok-2/ilmu-padi/delivery/middleware"
 	"github.com/kelompok-2/ilmu-padi/entity"
-	"github.com/kelompok-2/ilmu-padi/entity/dto"
 	"github.com/kelompok-2/ilmu-padi/shared/common"
 	"github.com/kelompok-2/ilmu-padi/usecase"
 )
@@ -68,10 +67,9 @@ func (crs *CourseController) GetAllCourses(c *gin.Context) {
 
 // Get Course By ID
 func (crs *CourseController) GetCourseByID(c *gin.Context) {
-	payload := dto.CourseIDDto{}
+	var payload int
 	user := c.MustGet("user").(string)
 
-	payload.UserId = user
 	if err := c.ShouldBindUri(&payload); err != nil {
 		common.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
@@ -88,7 +86,7 @@ func (crs *CourseController) GetCourseByID(c *gin.Context) {
 // Update Course
 func (crs *CourseController) UpdateCourse(c *gin.Context) {
 	payload := entity.Course{}
-	ID := dto.CourseIDDto{}
+	var ID int
 	user := c.MustGet("user").(string)
 
 	payload.UserId = user
@@ -113,10 +111,9 @@ func (crs *CourseController) UpdateCourse(c *gin.Context) {
 
 // Delete Course
 func (crs *CourseController) DeleteCourse(c *gin.Context) {
-	ID := dto.CourseIDDto{}
+	var ID int
 	user := c.MustGet("user").(string)
 
-	ID.UserId = user
 	if err := c.ShouldBindUri(&ID); err != nil {
 		common.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return

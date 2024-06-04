@@ -1,52 +1,126 @@
 package usecase
 
 import (
-	"time"
+	"errors"
+	"strconv"
 
 	"github.com/kelompok-2/ilmu-padi/entity"
+	"github.com/kelompok-2/ilmu-padi/entity/dto"
 	"github.com/kelompok-2/ilmu-padi/repository"
-	"github.com/midtrans/midtrans-go/snap"
+	"github.com/kelompok-2/ilmu-padi/shared/service"
 )
 
-// Initialize Struct Payment Usecase
 type paymentUsecase struct {
-	snapClient        snap.Client
-	paymentRepository repository.PaymentRepository
+	repository       repository.PaymentRepository
+	courseRepository repository.CourseRepository
+	paymentService   service.Service
 }
 
-// Initialize Interface Payment Sender Usecase
 type PaymentUsecase interface {
-	CreateSnapTransaction(req *snap.Request) (*snap.Response, error)
+	GetTransactionsByCourseID(input dto.GetCourseTransactionsInput) ([]entity.Transaction, error)
+	CreateTransaction(input dto.CreateTransactionInput) (entity.Transaction, error)
+	ProcessPayment(input dto.TransactionNotificationInput) error
+	GetAllTransactions() ([]entity.Transaction, error)
 }
 
-// Construction to Access Payment Usecase
-func NewPaymentUsecase(snapClient snap.Client, paymentRepository repository.PaymentRepository) PaymentUsecase {
-	return &paymentUsecase{
-		snapClient:        snapClient,
-		paymentRepository: paymentRepository,
-	}
+func NewPaymentUsecase(repository repository.PaymentRepository, courseRepository repository.CourseRepository, paymentService service.Service) *paymentUsecase {
+	return &paymentUsecase{repository, courseRepository, paymentService}
 }
 
-// Create Snap Transaction
-func (p *paymentUsecase) CreateSnapTransaction(req *snap.Request) (*snap.Response, error) {
-	snapResp, err := p.snapClient.CreateTransaction(req)
+func (s *paymentUsecase) GetTransactionsByCourseID(payload dto.GetCourseTransactionsInput) ([]entity.Transaction, error) {
+	course, err := s.courseRepository.FindByID(payload.ID)
 	if err != nil {
-		return nil, err
+		return []entity.Transaction{}, err
 	}
 
-	payment := entity.Payment{
-		User_ID:        req.CustomerDetail.FName,
-		Order_ID:       req.TransactionDetails.OrderID,
-		Transaction_ID: snapResp.Token,
-		Amount:         float64(req.TransactionDetails.GrossAmt),
-		Payment_Method: "midtrans",
-		Status:         "pending",
-		Paid_At:        time.Now(),
+	if course.UserId != strconv.Itoa(payload.User.ID) {
+		return []entity.Transaction{}, errors.New("not an owner of the course")
 	}
 
-	if err := p.paymentRepository.SavePayment(payment); err != nil {
-		return nil, err
+	transactions, err := s.repository.GetByCourseID(payload.ID)
+	if err != nil {
+		return transactions, err
 	}
 
-	return snapResp, nil
+	return transactions, nil
+}
+
+func (s *paymentUsecase) CreateTransaction(payload dto.CreateTransactionInput) (entity.Transaction, error) {
+	transaction := entity.Transaction{}
+	transaction.Course_ID = payload.CourseID
+	transaction.Amount = payload.Amount
+	transaction.User_ID = payload.User.ID
+	transaction.Status = "pending"
+
+	newTransaction, err := s.repository.Save(transaction)
+	if err != nil {
+		return newTransaction, err
+	}
+
+	paymentTransacation := service.Transaction{
+		ID:     newTransaction.ID,
+		Amount: newTransaction.Amount,
+	}
+
+	paymentURL, err := s.paymentService.GetPaymentURL(paymentTransacation, payload.User)
+	if err != nil {
+		return newTransaction, err
+	}
+
+	newTransaction.Payment_URL = paymentURL
+
+	newTransaction, err = s.repository.Update(newTransaction)
+	if err != nil {
+		return newTransaction, err
+	}
+
+	return newTransaction, nil
+}
+
+func (s *paymentUsecase) ProcessPayment(input dto.TransactionNotificationInput) error {
+	transaction_id, _ := strconv.Atoi(input.OrderID)
+
+	transaction, err := s.repository.GetByID(transaction_id)
+	if err != nil {
+		return err
+	}
+
+	if input.PaymentType == "credit_card" && input.TransactionStatus == "capture" && input.FraudStatus == "accept" {
+		transaction.Status = "paid"
+	} else if input.TransactionStatus == "settlement" {
+		transaction.Status = "paid"
+	} else if input.TransactionStatus == "deny" || input.TransactionStatus == "expire" || input.TransactionStatus == "cancel" {
+		transaction.Status = "cancelled"
+	}
+
+	updatedTransaction, err := s.repository.Update(transaction)
+	if err != nil {
+		return err
+	}
+
+	course, err := s.courseRepository.FindByID(updatedTransaction.Course_ID)
+	if err != nil {
+		return err
+	}
+
+	if updatedTransaction.Status == "paid" {
+		course.BackerCount = course.BackerCount + 1
+		course.CurrentAmount = course.CurrentAmount + updatedTransaction.Amount
+
+		_, err := s.courseRepository.Update(course)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *paymentUsecase) GetAllTransactions() ([]entity.Transaction, error) {
+	transactions, err := s.repository.FindAll()
+	if err != nil {
+		return transactions, err
+	}
+
+	return transactions, nil
 }
