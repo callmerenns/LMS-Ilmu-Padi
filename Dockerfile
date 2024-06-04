@@ -1,30 +1,23 @@
-# Stage 1: Build the Go application
-FROM golang:1.21.0 AS builder
+# Use the official Golang image as the base image
+FROM golang:1.18-alpine
 
+# Set the Current Working Directory inside the container
 WORKDIR /app
 
-# Copy go.mod and go.sum
+# Copy go mod and sum files
 COPY go.mod go.sum ./
 
-# Download dependencies
-RUN go mod tidy
+# Download all dependencies. Dependencies will be cached if the go.mod and go.sum files are not changed
+RUN go mod download
 
-# Copy the source code
+# Copy the source from the current directory to the Working Directory inside the container
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/ilmu-padi
+# Build the Go app
+RUN go build -o main .
 
-# Stage 2: Create a small image
-FROM alpine:latest
+# Expose port 8000 to the outside world
+EXPOSE 8000
 
-WORKDIR /app
-
-# Copy the binary from the builder stage
-COPY --from=builder /app/task-api /app/ilmu-padi
-
-# Ensure the binary has execute permissions
-RUN chmod +x /app/ilmu-padi
-
-# Set the entrypoint to the binary
-ENTRYPOINT ["/app/ilmu-padi"]
+# Command to run the executable
+CMD ["./main"]
