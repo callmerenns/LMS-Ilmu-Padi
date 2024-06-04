@@ -13,7 +13,7 @@ type GetCourseTransactionsInput struct {
 // Initialize Struct Create Transaction Input
 type CreateTransactionInput struct {
 	Amount   int `json:"amount" binding:"required"`
-	CourseID int `json:"campaign_id" binding:"required"`
+	CourseID int `json:"course_id" binding:"required"`
 	User     entity.User
 }
 
