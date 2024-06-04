@@ -25,6 +25,7 @@ const (
 	Logout         = "/auth/logout"
 	ForgotPassword = "/auth/forgot-password"
 	ResetPassword  = "/auth/reset-password"
+	VerifyEmail    = "/auth/verify-email"
 
 	// Route User
 	GetAllProfile                  = "/profile"

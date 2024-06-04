@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -74,6 +75,7 @@ func (a *AuthController) Logout(c *gin.Context) {
 // Verify Email
 func (a *AuthController) VerifyEmail(c *gin.Context) {
 	token := c.Query("token")
+	log.Println("token:", token)
 	err := a.authUsecase.VerifyEmail(token)
 	if err != nil {
 		common.SendErrorResponse(c, http.StatusBadRequest, err.Error())
@@ -124,4 +126,5 @@ func (a *AuthController) Route() {
 	a.rg.POST(routes.Logout, a.Logout)
 	a.rg.POST(routes.ForgotPassword, a.ForgotPassword)
 	a.rg.POST(routes.ResetPassword, a.ResetPassword)
+	a.rg.POST(routes.VerifyEmail, a.VerifyEmail)
 }

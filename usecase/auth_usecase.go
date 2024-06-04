@@ -6,7 +6,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/kelompok-2/ilmu-padi/client"
 	"github.com/kelompok-2/ilmu-padi/config"
 	"github.com/kelompok-2/ilmu-padi/entity"
@@ -90,7 +89,7 @@ func (u *authUsecase) Register(data *dto.RegisterDto) (*entity.User, error) {
 
 // Login
 func (u *authUsecase) Login(data *dto.LoginDto) (string, error) {
-	var tokenSecret config.Config
+	// var tokenSecret config.Config
 	user, err := u.authRepo.FindByEmailAuth(data.Email)
 	if err != nil {
 		return "", err
@@ -100,17 +99,19 @@ func (u *authUsecase) Login(data *dto.LoginDto) (string, error) {
 		return "", errors.New("invalid email or password")
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": user.ID,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(),
-	})
+	// token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+	// 	"user_id": user.ID,
+	// 	"exp":     time.Now().Add(time.Hour * 24).Unix(),
+	// })
 
-	tokenString, err := token.SignedString(tokenSecret.TokenConfig.TokenSecret)
-	if err != nil {
-		return "", err
-	}
+	// tokenString, err := token.SignedString(tokenSecret.TokenConfig.TokenSecret)
+	// if err != nil {
+	// 	return "", err
+	// }
 
-	return tokenString, nil
+	token, _ := u.jwtService.CreateToken(*user)
+
+	return token.Token, nil
 }
 
 // func (u *authUsecase) Login(data *dto.LoginDto) (string, error) {
@@ -215,7 +216,7 @@ func (u *authUsecase) GenerateVerificationToken() (string, error) {
 func (u *authUsecase) VerifyEmail(token string) error {
 	user, err := u.authRepo.FindByVerificationToken(token)
 	if err != nil {
-		return errors.New("invalid token")
+		return err
 	}
 
 	if time.Now().After(user.VerificationTokenExpiry) {
