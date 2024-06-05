@@ -13,6 +13,7 @@ type paymentRepository struct {
 // Initialize Interface Payment Sender Repository
 type PaymentRepository interface {
 	GetByCourseID(courseID int) ([]entity.Transaction, error)
+	GetByUserID(userID int) ([]entity.Transaction, error)
 	GetByID(ID int) (entity.Transaction, error)
 	Save(transaction entity.Transaction) (entity.Transaction, error)
 	Update(transaction entity.Transaction) (entity.Transaction, error)
@@ -28,7 +29,18 @@ func NewPaymentRepository(db *gorm.DB) PaymentRepository {
 func (r *paymentRepository) GetByCourseID(courseID int) ([]entity.Transaction, error) {
 	var transactions []entity.Transaction
 
-	err := r.db.Preload("User").Where("course_id = ?", courseID).Order("id desc").Find(&transactions).Error
+	err := r.db.Preload("users").Preload("courses").Where("course_id = ?", courseID).Order("id desc").Find(&transactions).Error
+	if err != nil {
+		return transactions, err
+	}
+
+	return transactions, nil
+}
+
+func (r *paymentRepository) GetByUserID(userID int) ([]entity.Transaction, error) {
+	var transactions []entity.Transaction
+
+	err := r.db.Preload("users").Preload("courses").Where("user_id = ?", userID).Order("id desc").Find(&transactions).Error
 	if err != nil {
 		return transactions, err
 	}
@@ -39,7 +51,7 @@ func (r *paymentRepository) GetByCourseID(courseID int) ([]entity.Transaction, e
 func (r *paymentRepository) GetByID(ID int) (entity.Transaction, error) {
 	var transaction entity.Transaction
 
-	err := r.db.Where("id = ?", ID).Find(&transaction).Error
+	err := r.db.Preload("users").Preload("courses").Where("id = ?", ID).Find(&transaction).Error
 
 	if err != nil {
 		return transaction, err
@@ -71,7 +83,7 @@ func (r *paymentRepository) Update(transaction entity.Transaction) (entity.Trans
 func (r *paymentRepository) FindAll() ([]entity.Transaction, error) {
 	var transactions []entity.Transaction
 
-	err := r.db.Preload("Campaign").Order("id desc").Find(&transactions).Error
+	err := r.db.Preload("users").Preload("courses").Order("id desc").Find(&transactions).Error
 	if err != nil {
 		return transactions, err
 	}

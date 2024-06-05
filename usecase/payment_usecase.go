@@ -12,9 +12,9 @@ import (
 
 // Initialize Struct User Payment Usecase
 type paymentUsecase struct {
-	repository       repository.PaymentRepository
-	courseRepository repository.CourseRepository
-	paymentService   service.Service
+	paymentRepository repository.PaymentRepository
+	courseRepository  repository.CourseRepository
+	paymentService    service.Service
 }
 
 // Initialize Interface User Course Sender Usecase
@@ -26,8 +26,8 @@ type PaymentUsecase interface {
 }
 
 // Construction to Access Payment Courses Usecase
-func NewPaymentUsecase(repository repository.PaymentRepository, courseRepository repository.CourseRepository, paymentService service.Service) *paymentUsecase {
-	return &paymentUsecase{repository, courseRepository, paymentService}
+func NewPaymentUsecase(paymentRepo repository.PaymentRepository, courseRepository repository.CourseRepository, paymentService service.Service) *paymentUsecase {
+	return &paymentUsecase{paymentRepo, courseRepository, paymentService}
 }
 
 // Get Transactions By Course ID
@@ -41,7 +41,7 @@ func (s *paymentUsecase) GetTransactionsByCourseID(payload dto.GetCourseTransact
 		return []entity.Transaction{}, errors.New("not an owner of the course")
 	}
 
-	transactions, err := s.repository.GetByCourseID(payload.ID)
+	transactions, err := s.paymentRepository.GetByCourseID(payload.ID)
 	if err != nil {
 		return transactions, err
 	}
@@ -57,7 +57,7 @@ func (s *paymentUsecase) CreateTransaction(payload dto.CreateTransactionInput, u
 	transaction.User_ID = payload.User.ID
 	transaction.Status = "pending"
 
-	newTransaction, err := s.repository.Save(transaction)
+	newTransaction, err := s.paymentRepository.Save(transaction)
 	if err != nil {
 		return newTransaction, err
 	}
@@ -74,7 +74,7 @@ func (s *paymentUsecase) CreateTransaction(payload dto.CreateTransactionInput, u
 
 	newTransaction.Payment_URL = paymentURL
 
-	newTransaction, err = s.repository.Update(newTransaction)
+	newTransaction, err = s.paymentRepository.Update(newTransaction)
 	if err != nil {
 		return newTransaction, err
 	}
@@ -86,7 +86,7 @@ func (s *paymentUsecase) CreateTransaction(payload dto.CreateTransactionInput, u
 func (s *paymentUsecase) ProcessPayment(input dto.TransactionNotificationInput, user string) error {
 	transaction_id, _ := strconv.Atoi(input.OrderID)
 
-	transaction, err := s.repository.GetByID(transaction_id)
+	transaction, err := s.paymentRepository.GetByID(transaction_id)
 	if err != nil {
 		return err
 	}
@@ -99,7 +99,7 @@ func (s *paymentUsecase) ProcessPayment(input dto.TransactionNotificationInput, 
 		transaction.Status = "cancelled"
 	}
 
-	updatedTransaction, err := s.repository.Update(transaction)
+	updatedTransaction, err := s.paymentRepository.Update(transaction)
 	if err != nil {
 		return err
 	}
@@ -124,7 +124,7 @@ func (s *paymentUsecase) ProcessPayment(input dto.TransactionNotificationInput, 
 
 // Get All Transactions
 func (s *paymentUsecase) GetAllTransactions(user string) ([]entity.Transaction, error) {
-	transactions, err := s.repository.FindAll()
+	transactions, err := s.paymentRepository.FindAll()
 	if err != nil {
 		return transactions, err
 	}

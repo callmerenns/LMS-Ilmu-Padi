@@ -58,7 +58,6 @@ func NewServer() *Server {
 
 	jwtService := service.NewJwtService(cfg.TokenConfig)
 	mailService := service.NewMailService(cfg.SmtpConfig)
-	paymentService := service.NewService()
 
 	// Setup Configuration Layer Repo
 	authRepo := repository.NewAuthRepository(db)
@@ -67,6 +66,7 @@ func NewServer() *Server {
 	userCourseFavoriteRepo := repository.NewUserCoursesFavouriteRepository(db)
 	// mailRepo := repository.New
 	paymentRepo := repository.NewPaymentRepository(db)
+	paymentService := service.NewService(paymentRepo, courseRepo)
 
 	// Setup Configuration Layer Usecase
 	authUsecase := usecase.NewAuthUsecase(authRepo, jwtService, *mailService)

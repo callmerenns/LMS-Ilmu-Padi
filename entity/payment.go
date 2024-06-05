@@ -10,8 +10,8 @@ import (
 // Initialize Struct Payment
 type Transaction struct {
 	ID          int    `gorm:"primaryKey;autoIncrement" json:"id"`
-	User_ID     int    `json:"user_id"`
-	Course_ID   int    `json:"order_id"`
+	User_ID     int    `gorm:"index" json:"user_id"`
+	Course_ID   int    `gorm:"index" json:"course_id"`
 	Amount      int    `json:"amount"`
 	Status      string `json:"status"`
 	Code        string `json:"code"`

@@ -23,6 +23,7 @@ func NewPaymentController(paymentUsecase usecase.PaymentUsecase, rg *gin.RouterG
 	return &PaymentController{paymentUsecase: paymentUsecase, rg: rg, authMid: authMid}
 }
 
+// Get Campaign Transactions
 func (h *PaymentController) GetCampaignTransactions(c *gin.Context) {
 	var payload dto.GetCourseTransactionsInput
 
@@ -50,6 +51,7 @@ func (h *PaymentController) GetCampaignTransactions(c *gin.Context) {
 	common.SendSuccessResponse(c, http.StatusOK, transactions)
 }
 
+// Create Transaction
 func (h *PaymentController) CreateTransaction(c *gin.Context) {
 	var payload dto.CreateTransactionInput
 
@@ -85,6 +87,7 @@ func (h *PaymentController) CreateTransaction(c *gin.Context) {
 	common.SendSuccessResponse(c, http.StatusOK, newTransaction)
 }
 
+// Get Notification
 func (h *PaymentController) GetNotification(c *gin.Context) {
 	var payload dto.TransactionNotificationInput
 
