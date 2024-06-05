@@ -1,29 +1,37 @@
-package testing
+package usecase
 
 import (
 	"testing"
 
 	"github.com/kelompok-2/ilmu-padi/entity"
-	"github.com/kelompok-2/ilmu-padi/entity/dto"
+	"github.com/kelompok-2/ilmu-padi/shared/model"
 	"github.com/kelompok-2/ilmu-padi/testing/mocking"
-	"github.com/kelompok-2/ilmu-padi/usecase"
 	"github.com/stretchr/testify/suite"
 )
 
 type CourseUsecaseTestSuite struct {
 	suite.Suite
 	arm *mocking.CourseRepoMock
-	auc usecase.CourseUsecase
+	auc CourseUsecase
 }
 
 func (s *CourseUsecaseTestSuite) SetupTest() {
 	s.arm = new(mocking.CourseRepoMock)
-	s.auc = usecase.NewCourseUsecase(s.arm)
+	s.auc = NewCourseUsecase(s.arm)
 }
 
 func (s *CourseUsecaseTestSuite) TestGetAllCourse_Success() {
-	s.arm.On("FindAll").Return([]entity.Course{}, nil)
+	s.arm.On("FindAll").Return([]entity.Course{}, model.Paging{}, nil)
 	courses, _, err := s.auc.GetAllCourses(1, 10, "")
+	s.Nil(err)
+
+	s.arm.AssertExpectations(s.T())
+	s.Equal([]entity.Course{}, courses)
+}
+
+func (s *CourseUsecaseTestSuite) TestGetAllCourseByCategory_Success() {
+	s.arm.On("FindAllByCategory", "").Return([]entity.Course{}, model.Paging{}, nil)
+	courses, _, err := s.auc.GetAllCoursesByCategory("", 1, 10, "")
 	s.Nil(err)
 
 	s.arm.AssertExpectations(s.T())
@@ -49,40 +57,25 @@ func (s *CourseUsecaseTestSuite) TestCreateCourse_Success() {
 }
 
 func (s *CourseUsecaseTestSuite) TestUpdateCourse_Success() {
-	// Create a sample course to return when FindByID is called
-	existingCourse := entity.Course{
-		ID:              1,
-		Title:           "Old Title",
-		Description:     "Old Description",
-		Category:        "Old Category",
-		Video_URL:       "old_video_url",
-		Duration:        10,
-		Instructor_Name: "Old Instructor",
-		Rating:          4.5,
-	}
-	updatedCourse := entity.Course{
-		ID:              1,
+	courseID := 1
+	course := entity.Course{
+		ID:              uint(courseID),
 		Title:           "New Title",
 		Description:     "New Description",
 		Category:        "New Category",
-		Video_URL:       "new_video_url",
-		Duration:        12,
+		Video_URL:       "New Video URL",
+		Duration:        10,
 		Instructor_Name: "New Instructor",
-		Rating:          4.8,
+		Rating:          5,
 	}
 
-	// Mock the FindByID and Update methods
-	s.arm.On("FindByID", dto.CourseIDDto{ID: 1}).Return(existingCourse, nil)
-	s.arm.On("Update", updatedCourse).Return(nil)
+	s.arm.On("FindByID", courseID).Return(course, nil)
+	s.arm.On("Update", course).Return(nil)
 
-	// Call the UpdateCourse method
-	result, err := s.auc.UpdateCourse(1, updatedCourse, "")
-
-	// Assert that there were no errors and that the result matches the updated course
+	updatedCourse, err := s.auc.UpdateCourse(courseID, course, "")
 	s.Nil(err)
-	s.Equal(updatedCourse, result)
+	s.Equal(course, updatedCourse)
 
-	// Assert that the expectations were met
 	s.arm.AssertExpectations(s.T())
 }
 

@@ -1,6 +1,9 @@
 package common
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -55,4 +58,12 @@ func SendSuccessResponse(ctx *gin.Context, code int, message any) {
 		Code:    code,
 		Message: message,
 	})
+}
+
+func ToJSON(payload interface{}) (io.Reader, error) {
+	jsonBytes, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewReader(jsonBytes), nil
 }

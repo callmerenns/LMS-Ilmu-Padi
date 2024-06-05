@@ -1,4 +1,4 @@
-package testing
+package repository
 
 import (
 	"database/sql"
@@ -10,7 +10,6 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jinzhu/gorm"
 	"github.com/kelompok-2/ilmu-padi/entity"
-	"github.com/kelompok-2/ilmu-padi/repository"
 	"github.com/kelompok-2/ilmu-padi/shared/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -20,7 +19,7 @@ type CourseRepositoryTestSuite struct {
 	suite.Suite
 	mockDb  *sql.DB
 	mockSql sqlmock.Sqlmock
-	repo    repository.CourseRepository
+	repo    CourseRepository
 }
 
 var exampleCourse = entity.Course{
@@ -41,7 +40,7 @@ func (s *CourseRepositoryTestSuite) SetupTest() {
 	if err != nil {
 		panic(err)
 	}
-	s.repo = repository.NewCourseRepository(gormDb)
+	s.repo = NewCourseRepository(gormDb)
 }
 
 func (s *CourseRepositoryTestSuite) TestGetAll_Success() {
@@ -187,6 +186,44 @@ func (s *CourseRepositoryTestSuite) TestDelete_Failed() {
 
 	err := s.repo.Delete(int(exampleCourse.ID))
 	s.Error(err)
+}
+
+func (s *CourseRepositoryTestSuite) TestFindAllByCategory_Success() {
+	// Mock the database
+	s.mockSql.ExpectBegin()
+	s.mockSql.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM courses WHERE category = $1 LIMIT $2 OFFSET $3`)).
+		WithArgs("category", 10, 0).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "title", "description", "category", "video_url", "duration", "instructor_name", "rating"}).
+			AddRow(1, "title1", "description1", "category", "video_url", 10, "instructor_name", 4.5).
+			AddRow(2, "title2", "description2", "category", "video_url", 10, "instructor_name", 4.5))
+	s.mockSql.ExpectQuery(regexp.QuoteMeta(`SELECT COUNT(*) FROM courses WHERE category = $1`)).
+		WithArgs("category").
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(2))
+	s.mockSql.ExpectCommit()
+
+	// Call the function
+	courses, paging, err := s.repo.FindAllByCategory("category", 1, 10)
+
+	// Check the results
+	s.NoError(err)
+	s.Equal(2, paging.TotalRows)
+	s.Equal(2, len(courses))
+	s.Equal(1, courses[0].ID)
+	s.Equal("title1", courses[0].Title)
+	s.Equal("description1", courses[0].Description)
+	s.Equal("category", courses[0].Category)
+	s.Equal("video_url", courses[0].Video_URL)
+	s.Equal(10, courses[0].Duration)
+	s.Equal("instructor_name", courses[0].Instructor_Name)
+	s.Equal(4.5, courses[0].Rating)
+	s.Equal(2, courses[1].ID)
+	s.Equal("title2", courses[1].Title)
+	s.Equal("description2", courses[1].Description)
+	s.Equal("category", courses[1].Category)
+	s.Equal("video_url", courses[1].Video_URL)
+	s.Equal(10, courses[1].Duration)
+	s.Equal("instructor_name", courses[1].Instructor_Name)
+	s.Equal(4.5, courses[1].Rating)
 }
 
 func TestCourseRepoTestSuite(t *testing.T) {

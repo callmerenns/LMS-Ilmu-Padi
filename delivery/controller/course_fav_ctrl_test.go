@@ -1,4 +1,4 @@
-package testing
+package controller
 
 import (
 	"bytes"
@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kelompok-2/ilmu-padi/delivery/controller"
 	"github.com/kelompok-2/ilmu-padi/entity"
 	"github.com/kelompok-2/ilmu-padi/testing/mocking"
 	"github.com/stretchr/testify/assert"
@@ -47,7 +46,7 @@ func (s *CourseFavouriteControllerTestSuite) TestAddOrRemoveCourseFavourite_Succ
 	s.amm.On("RequireToken", "user", "admin").Return(nil)
 	s.aum.On("AddOrRemoveToFavourite", payload).Return("Add/Remove Course Favourite Executed", nil)
 
-	coursesCtrl := controller.NewUserCoursesFavouriteController(s.aum, s.rg, s.amm)
+	coursesCtrl := NewUserCoursesFavouriteController(s.aum, s.rg, s.amm)
 	coursesCtrl.Route()
 
 	jsonPayload, _ := json.Marshal(payload)
@@ -73,7 +72,7 @@ func (s *CourseFavouriteControllerTestSuite) TestAddOrRemoveCourseFavourite_Fail
 	s.amm.On("RequireToken", "user", "admin").Return(nil)
 	s.aum.On("AddOrRemoveToFavourite", payload).Return("", fmt.Errorf("Add/Remove Course Favourite Failed"))
 
-	coursesCtrl := controller.NewUserCoursesFavouriteController(s.aum, s.rg, s.amm)
+	coursesCtrl := NewUserCoursesFavouriteController(s.aum, s.rg, s.amm)
 	coursesCtrl.Route()
 
 	jsonPayload, _ := json.Marshal(payload)
@@ -99,7 +98,7 @@ func (s *CourseFavouriteControllerTestSuite) TestGetAllCourseFavourite_Success()
 		},
 	}, nil)
 
-	coursesCtrl := controller.NewUserCoursesFavouriteController(s.aum, s.rg, s.amm)
+	coursesCtrl := NewUserCoursesFavouriteController(s.aum, s.rg, s.amm)
 	coursesCtrl.Route()
 
 	request, err := http.NewRequest("GET", fmt.Sprintf("/api/v1/user/course/favourite/%v", "1"), nil)
