@@ -59,7 +59,7 @@ func (s *CourseUsecaseTestSuite) TestCreateCourse_Success() {
 func (s *CourseUsecaseTestSuite) TestUpdateCourse_Success() {
 	courseID := 1
 	course := entity.Course{
-		ID:              uint(courseID),
+		ID:              courseID,
 		Title:           "New Title",
 		Description:     "New Description",
 		Category:        "New Category",
